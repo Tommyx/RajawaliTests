@@ -5,160 +5,218 @@ import java.util.Currency;
 
 import javax.microedition.khronos.opengles.GL10;
 
-
+import rajawali.parser.Loader3DSMax;
+import rajawali.parser.ParsingException;
 import rajawali.parser.fbx.LoaderFBX;
 
 import rajawali.animation.Animation3D;
 import android.content.Context;
-import android.graphics.Bitmap.Config;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
+import android.view.MotionEvent;
 import rajawali.Camera;
 import rajawali.Object3D;
 import rajawali.materials.Material;
 import rajawali.materials.methods.DiffuseMethod;
-import rajawali.materials.textures.ATexture.FilterType;
-import rajawali.materials.textures.ATexture.WrapType;
 import rajawali.materials.textures.Texture;
 import rajawali.materials.textures.ATexture.TextureException;
+import rajawali.math.vector.Vector3;
 import rajawali.lights.DirectionalLight;
-import rajawali.lights.PointLight;
-import rajawali.primitives.Cube;
 import rajawali.primitives.Plane;
-import rajawali.primitives.Sphere;
 import rajawali.renderer.RajawaliRenderer;
-import rajawali.renderer.RenderTarget;
 import rajawali.scene.RajawaliScene;
+import rajawali.terrain.SquareTerrain;
+import rajawali.terrain.TerrainGenerator;
 
 public class Renderer extends RajawaliRenderer {
 
 	private Material mMaterial, PlaneMat;
 	private float time = 0;
 	private DirectionalLight mLight; 
-	Object3D cube, sphere, plane;
-	RajawaliScene sc1, sc2;
-	RenderTarget r1, r2, r3;
-	private RajawaliScene mUserScene;
+	Object3D cube, sphere, plane, landscape, tree, tree2;
+    float touchTurn;
+	float touchTurnUp;
+    Object3D trees[] = new Object3D[2];
+	Loader3DSMax treeParser[] = new Loader3DSMax[2];
+	float coordx = 0;
+	float coordy = 0;
+	float half_width  = 0; 
+	float half_height = 0; 
+	float oldposx = 0;
+	float oldposy = 0;
+	float fingerx=0; 
+	boolean scaling = false;
+	Vector3 camrot, campos = new Vector3();
 	
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
+		
+	}
+	
+	private void createLandscape(){
+		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
+				R.drawable.terrain);
+
+		try {
+			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
+			terrainParams.setScale(1f,5f, 1f);
+			terrainParams.setDivisions(128);
+			terrainParams.setTextureMult(4);
+			terrainParams.setColorMapBitmap(bmp);
+			landscape = TerrainGenerator.createSquareTerrainFromBitmap(terrainParams);
+			landscape.setPosition(0,-5,0);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Material Landmat = new Material();
+		
+		
+		try{
+			Landmat.enableLighting(true);
+			Landmat.setDiffuseMethod(new DiffuseMethod.Lambert());
+			Landmat.addTexture(new Texture("snow", R.drawable.meadow));
+			Landmat.setColorInfluence(0);
+			landscape.setMaterial(Landmat);
+		}catch(TextureException t){
+			t.printStackTrace();
+		}
 	}
 	
 	private void scene1(){
 		
-		sc1 = new RajawaliScene(this);
-		Camera cam = new Camera();
-		cam.setPosition(0,2,5);
-		cam.setLookAt(0,0,0);
-		sc1.addCamera(cam);
-		sc1.switchCamera(cam);
-		sc1.addLight(mLight);
+		getCurrentCamera().setPosition(0,5,20);
+		getCurrentCamera().setLookAt(0,0,0);
+		getCurrentCamera().setFogNear(-1);
+		getCurrentCamera().setFogFar(10);
+		getCurrentCamera().setFogColor(0xffffff);
 		
-		try {
-			cube = new Cube(1);
-			
-			Material cubeMat = new Material();
-			cubeMat.enableLighting(true);
-			cubeMat.setDiffuseMethod(new DiffuseMethod.Lambert());
-			cubeMat.addTexture(new Texture("cubeMat", R.drawable.posy));
-			cubeMat.setColorInfluence(0);
-			cube.setMaterial(cubeMat);
-			sc1.addChild(cube);
-			
-		}catch(TextureException e){
-			e.printStackTrace();
-		}
-		
-	}
-
-	private void scene2(){
-		
-		sc2 = new RajawaliScene(this);
-		Camera cam = new Camera();
-		cam.setPosition(0,2,5);
-		cam.setLookAt(0,0,0);
-		sc2.switchCamera(cam);
-		sc2.addCamera(cam);
-		sc2.addLight(mLight);
-		
-		try {
-			sphere = new Sphere(1,10,10);
-			
-			Material sphererMat = new Material();
-			sphererMat.enableLighting(true);
-			sphererMat.setDiffuseMethod(new DiffuseMethod.Lambert());
-			sphererMat.addTexture(new Texture("sphereMat", R.drawable.negy));
-			sphererMat.setColorInfluence(0);
-			sphere.setMaterial(sphererMat);
-			sc2.addChild(sphere);
-			
-		}catch(TextureException e){
-			e.printStackTrace();
-		}
-	}
-	
-	protected void initScene() {
-		
-		mLight = new DirectionalLight(0, 0, 0f);
-		mLight.setPosition(0,4,4);
-		mLight.setColor(1.0f, 1.0f, 0.8f);
-		mLight.setPower(1);
-	
-		Camera cam = getCurrentCamera();
-		cam.setPosition(0,0,10);
 		getCurrentScene().addLight(mLight);
 		
-		scene1();
-		scene2();
+		try {
+			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
+					R.drawable.posy, R.drawable.negy, R.drawable.posz,
+					R.drawable.negz);
+		} catch (TextureException e) {
+			e.printStackTrace();
+		}
 		
-		addScene(sc1);
-		addScene(sc2);
+		createLandscape();
+		addChild(landscape);
 		
-		Log.d("width", Float.toString(mViewportWidth));
-		Log.d("height", Float.toString(mViewportHeight));
+		treeParser[0] = new Loader3DSMax(this, R.raw.tree);
+		treeParser[1] = new Loader3DSMax(this, R.raw.tree2);
 		
-		r1 = new RenderTarget(mViewportWidth, mViewportHeight,0,0,false,false,false,GL10.GL_TEXTURE_2D, Config.ARGB_8888,FilterType.LINEAR,WrapType.CLAMP);
-		r2 = new RenderTarget(mViewportWidth, mViewportHeight,0,0,false,false,false,GL10.GL_TEXTURE_2D, Config.ARGB_8888,FilterType.LINEAR,WrapType.CLAMP);
+		Material[] treemat = new Material[2];
+		treemat[0] = new Material();
+		treemat[1] = new Material();
 		
-		r1.create();
-		r2.create();
-		
-		addRenderTarget(r1);
-		addRenderTarget(r2);
-		
-		plane = new Plane(10,10,1,1);
-		Material planeMat = new Material();
-		plane.setRotX(180);
-		plane.setRotZ(180);
-		plane.setPosition(0,0,-5);
-		
-		try{
-			planeMat.enableLighting(true);
-			planeMat.setDiffuseMethod(new DiffuseMethod.Lambert());
-			planeMat.addTexture(r1.getTexture());
-			planeMat.setColorInfluence(0);
-			plane.setMaterial(planeMat);
+		try {
+			treemat[0].addTexture(new Texture("treetex", R.drawable.tree));
+			treemat[1].addTexture(new Texture("treetex2", R.drawable.tree2));
+			
 		}catch(TextureException t){
 			t.printStackTrace();
 		}
 		
-		addChild(plane);
-		mUserScene = getCurrentScene();
+		for (int i = 0; i < 2; i++){
+					
+			try {
+				treeParser[i].parse();
+			} catch(ParsingException e) {
+				e.printStackTrace();
+			}
+		
+		treemat[i].setColorInfluence(0);
+		
+		trees[i] = treeParser[i].getParsedObject();
+		trees[i].setMaterial(treemat[i]);
+		
+		for (float j = 0; j<=20; j++){
+			Object3D t = trees[i].clone();
+			t.setPosition(-80 + Math.random()*100,-2+Math.random()*2,-80 + Math.random()*100);
+			addChild(t);
+			t.setRotation(90,  0,  Math.random()*360);
+			
+		}
+	}
+	}
+
+	protected void initScene() {
+		setFogEnabled(true);
+		mLight = new DirectionalLight(0, 0, 0f);
+		mLight.setPosition(0,4,4);
+		mLight.setColor(1.0f, 1.0f, 1.0f);
+		mLight.setPower(1);
+		scene1();
+		
 	}
 
 	@Override
-	protected void onRender(double deltaTime) {
-		sc1.render(deltaTime,r1);
-		sc2.render(deltaTime,r2);
-		render(deltaTime);
-	};
-
-	@Override
 	public void onDrawFrame(GL10 glUnused) {
-		// TODO Auto-generated method stub
-		cube.setRotY(time);
-		sphere.setRotY(time);
 		super.onDrawFrame(glUnused);
 		time+=0.1;
+	}
+	
+	 	
+	public void onTouch(MotionEvent me){
+	
+		if (me.getAction() == MotionEvent.ACTION_DOWN) {
+			scaling = false;
+		}
+	
+		if (me.getAction() == MotionEvent.ACTION_UP) {
+		    
+		}
+		
+		if (me.getAction() == MotionEvent.ACTION_POINTER_DOWN){
+			coordx = me.getX();
+        	coordy = me.getY();
+        	half_width = getCurrentViewportWidth() / 2;
+    		half_height = getCurrentViewportHeight() / 2;
+    		
+    		campos = getCurrentCamera().getPosition(); 
+    		
+    		if (coordx < half_width) 
+        	{
+    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.1f);
+        	}else
+        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.1f);
+		}
+    		
+		if (me.getAction() == MotionEvent.ACTION_MOVE && !scaling) {
+        	coordx = me.getX();
+        	coordy = me.getY();
+        	
+        	float xd,yd = 0;
+            
+        	half_width = getCurrentViewportWidth() / 2;
+    		half_height = getCurrentViewportHeight() / 2;
+    		
+        	if (coordx < half_width) 
+        	{
+        		xd = (float) getCurrentCamera().getRotation().y + (-half_width + Math.abs(coordx)) / 100; 
+        	}else{ 
+        		xd = (float) getCurrentCamera().getRotation().y + (Math.abs(coordx)-half_width) / 100;
+        	}
+            if (coordy < half_height) 
+        	{
+        		yd = (float) getCurrentCamera().getRotation().z + (-half_height + Math.abs(coordy)) / 100; 
+        	}else{ 
+        		yd = (float) getCurrentCamera().getRotation().z + (Math.abs(coordy)-half_height) / 100;
+        	}
+            
+        	getCurrentCamera().setRotation( 0,xd,yd);
+            
+        } 
+
+	}
+
+	public void onScale(float i) {
+		scaling = true;
+		campos = getCurrentCamera().getPosition(); 
+    	getCurrentCamera().setPosition(campos.x, campos.y, i / 10);
 	}
 }

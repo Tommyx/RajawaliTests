@@ -22,12 +22,17 @@ public final class R {
     }
     public static final class drawable {
         public static final int loader=0x7f020000;
-        public static final int negx=0x7f020001;
-        public static final int negy=0x7f020002;
-        public static final int negz=0x7f020003;
-        public static final int posx=0x7f020004;
-        public static final int posy=0x7f020005;
-        public static final int posz=0x7f020006;
+        public static final int meadow=0x7f020001;
+        public static final int negx=0x7f020002;
+        public static final int negy=0x7f020003;
+        public static final int negz=0x7f020004;
+        public static final int posx=0x7f020005;
+        public static final int posy=0x7f020006;
+        public static final int posz=0x7f020007;
+        public static final int snow=0x7f020008;
+        public static final int terrain=0x7f020009;
+        public static final int tree=0x7f02000a;
+        public static final int tree2=0x7f02000b;
     }
     public static final class id {
         public static final int action_settings=0x7f090000;
@@ -45,6 +50,8 @@ public final class R {
         public static final int grey_scale_fragment_shader=0x7f040003;
         public static final int minimal_vertex_shader=0x7f040004;
         public static final int sepia_fragment_shader=0x7f040005;
+        public static final int tree=0x7f040006;
+        public static final int tree2=0x7f040007;
     }
     public static final class string {
         public static final int action_settings=0x7f060001;
