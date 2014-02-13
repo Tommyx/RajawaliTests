@@ -43,9 +43,7 @@ public class Renderer extends RajawaliRenderer {
 	float coordy = 0;
 	float half_width  = 0; 
 	float half_height = 0; 
-	float oldposx = 0;
-	float oldposy = 0;
-	float fingerx=0; 
+	float oldi = 0; 
 	boolean scaling = false;
 	Vector3 camrot, campos = new Vector3();
 	
@@ -61,12 +59,12 @@ public class Renderer extends RajawaliRenderer {
 
 		try {
 			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
-			terrainParams.setScale(1f,5f, 1f);
+			terrainParams.setScale(3f,15f, 3f);
 			terrainParams.setDivisions(128);
 			terrainParams.setTextureMult(4);
 			terrainParams.setColorMapBitmap(bmp);
 			landscape = TerrainGenerator.createSquareTerrainFromBitmap(terrainParams);
-			landscape.setPosition(0,-5,0);
+			landscape.setPosition(0,-15,0);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -87,7 +85,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void scene1(){
 		
-		getCurrentCamera().setPosition(0,5,20);
+		getCurrentCamera().setPosition(0,15,100);
 		getCurrentCamera().setLookAt(0,0,0);
 		getCurrentCamera().setFogNear(-1);
 		getCurrentCamera().setFogFar(10);
@@ -136,7 +134,8 @@ public class Renderer extends RajawaliRenderer {
 		
 		for (float j = 0; j<=20; j++){
 			Object3D t = trees[i].clone();
-			t.setPosition(-80 + Math.random()*100,-2+Math.random()*2,-80 + Math.random()*100);
+			t.setScale(6, 8, 6);
+			t.setPosition(-150 + Math.random()*300,-2+Math.random()*2,-150 + Math.random()*300);
 			addChild(t);
 			t.setRotation(90,  0,  Math.random()*360);
 			
@@ -217,6 +216,16 @@ public class Renderer extends RajawaliRenderer {
 	public void onScale(float i) {
 		scaling = true;
 		campos = getCurrentCamera().getPosition(); 
-    	getCurrentCamera().setPosition(campos.x, campos.y, i / 10);
+    	
+		if (campos.z < 300 && campos.z > 0){
+		if (oldi > i)
+    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z -= 1);
+    	if (oldi < i)
+    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z += 1);
+    	oldi = i;
+		}else{
+			if(campos.z > 300) campos.z = 299;
+			if(campos.z < 0) campos.z = 1;
+		}
 	}
 }
