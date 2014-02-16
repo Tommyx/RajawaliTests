@@ -6,10 +6,13 @@ import java.util.Currency;
 import javax.microedition.khronos.opengles.GL10;
 
 import rajawali.parser.Loader3DSMax;
+import rajawali.parser.LoaderAWD;
 import rajawali.parser.ParsingException;
 import rajawali.parser.fbx.LoaderFBX;
 
 import rajawali.animation.Animation3D;
+import rajawali.animation.RotateAnimation3D;
+import rajawali.animation.Animation3D.RepeatMode;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,8 +25,10 @@ import rajawali.materials.methods.DiffuseMethod;
 import rajawali.materials.textures.Texture;
 import rajawali.materials.textures.ATexture.TextureException;
 import rajawali.math.vector.Vector3;
+import rajawali.math.vector.Vector3.Axis;
 import rajawali.lights.DirectionalLight;
 import rajawali.primitives.Plane;
+import rajawali.primitives.Sphere;
 import rajawali.renderer.RajawaliRenderer;
 import rajawali.scene.RajawaliScene;
 import rajawali.terrain.SquareTerrain;
@@ -46,22 +51,21 @@ public class Renderer extends RajawaliRenderer {
 	float oldi = 0; 
 	boolean scaling = false;
 	Vector3 camrot, campos = new Vector3();
+	private ExampleParticleSystem mParticleSystem;
 	
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
-		
 	}
 	
 	private void createLandscape(){
 		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
-				R.drawable.terrain);
-
+				R.drawable.altar);
 		try {
 			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
-			terrainParams.setScale(3f,15f, 3f);
+			terrainParams.setScale(5f,25f, 5f);
 			terrainParams.setDivisions(128);
-			terrainParams.setTextureMult(4);
+			terrainParams.setTextureMult(1);
 			terrainParams.setColorMapBitmap(bmp);
 			landscape = TerrainGenerator.createSquareTerrainFromBitmap(terrainParams);
 			landscape.setPosition(0,-15,0);
@@ -70,39 +74,71 @@ public class Renderer extends RajawaliRenderer {
 		}
 
 		Material Landmat = new Material();
+			
+		Landmat.enableLighting(true);
+		Landmat.setDiffuseMethod(new DiffuseMethod.Lambert());
+		Landmat.setColorInfluence(0);
+		Landmat.setColor(0x003300);
 		
-		
-		try{
-			Landmat.enableLighting(true);
-			Landmat.setDiffuseMethod(new DiffuseMethod.Lambert());
-			Landmat.addTexture(new Texture("snow", R.drawable.meadow));
-			Landmat.setColorInfluence(0);
-			landscape.setMaterial(Landmat);
+		try {
+			Texture t = new Texture("treetex", R.drawable.altar);
+			Landmat.addTexture(t);
 		}catch(TextureException t){
 			t.printStackTrace();
 		}
+		landscape.setMaterial(Landmat);
+		addChild(landscape);
 	}
 	
+	private void loadClouds(int num){
+
+        Object3D clouds = new Plane(1,1,1,1);
+        clouds.setDoubleSided(true);
+        clouds.setTransparent(true);
+        
+        
+        Texture texture = new Texture("cloud", R.drawable.cloud);
+        Material cloudMat = new Material(); 
+        cloudMat.setColorInfluence(0);
+        
+        try{
+        	cloudMat.addTexture(texture);
+        }catch(TextureException t){
+        	t.printStackTrace();
+        }
+        
+        clouds.setMaterial(cloudMat);
+        float deg =  (float) Math.PI / 180;
+        
+        
+        for ( int i = 0; i < num; i++ ) {
+
+        	Object3D planes = clouds.clone();
+        	
+        	float x = -100 + (float)Math.random() * 100;
+        	float y = (float)Math.random() * 30;
+        	float z = -100 + i*10;
+        	float scale = (float) (Math.random() * 100.5f);
+        	
+        	planes.setPosition(-150 + Math.random()*300,100+Math.random()*20,-150 + Math.random()*300);
+			
+        	//planes.setPosition(x,y,z);
+        	planes.setRotation(30*deg,0, Math.random() * (float) Math.PI);
+        	
+        	planes.setScale(scale,scale,scale);
+        	addChild(planes);
+        }
+        
+      
+    }
+    
+	
 	private void scene1(){
-		
-		getCurrentCamera().setPosition(0,15,100);
-		getCurrentCamera().setLookAt(0,0,0);
-		getCurrentCamera().setFogNear(-1);
-		getCurrentCamera().setFogFar(10);
-		getCurrentCamera().setFogColor(0xffffff);
-		
 		getCurrentScene().addLight(mLight);
-		
-		try {
-			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
-					R.drawable.posy, R.drawable.negy, R.drawable.posz,
-					R.drawable.negz);
-		} catch (TextureException e) {
-			e.printStackTrace();
-		}
+		getCurrentScene().setBackgroundColor(0xeeeeee);
 		
 		createLandscape();
-		addChild(landscape);
+		loadClouds(100);
 		
 		treeParser[0] = new Loader3DSMax(this, R.raw.tree);
 		treeParser[1] = new Loader3DSMax(this, R.raw.tree2);
@@ -112,9 +148,8 @@ public class Renderer extends RajawaliRenderer {
 		treemat[1] = new Material();
 		
 		try {
-			treemat[0].addTexture(new Texture("treetex", R.drawable.tree));
-			treemat[1].addTexture(new Texture("treetex2", R.drawable.tree2));
-			
+			treemat[0].addTexture(new Texture("treetex", R.drawable.tree2snow));
+			treemat[1].addTexture(new Texture("treetex2", R.drawable.treesnow));
 		}catch(TextureException t){
 			t.printStackTrace();
 		}
@@ -134,7 +169,7 @@ public class Renderer extends RajawaliRenderer {
 		
 		for (float j = 0; j<=20; j++){
 			Object3D t = trees[i].clone();
-			t.setScale(6, 8, 6);
+			t.setScale(8, 8, 8);
 			t.setPosition(-150 + Math.random()*300,-2+Math.random()*2,-150 + Math.random()*300);
 			addChild(t);
 			t.setRotation(90,  0,  Math.random()*360);
@@ -144,12 +179,22 @@ public class Renderer extends RajawaliRenderer {
 	}
 
 	protected void initScene() {
-		setFogEnabled(true);
+		
+		
 		mLight = new DirectionalLight(0, 0, 0f);
-		mLight.setPosition(0,4,4);
+		mLight.setPosition(0,50,0);
 		mLight.setColor(1.0f, 1.0f, 1.0f);
 		mLight.setPower(1);
+		
+		setFogEnabled(true);
+		
+		getCurrentCamera().setPosition(0,75,300);
+		getCurrentCamera().setLookAt(0,0,0);
+		getCurrentCamera().setFogFar(100);
+		getCurrentCamera().setFarPlane(1000);
+		
 		scene1();
+		
 		
 	}
 
@@ -157,6 +202,8 @@ public class Renderer extends RajawaliRenderer {
 	public void onDrawFrame(GL10 glUnused) {
 		super.onDrawFrame(glUnused);
 		time+=0.1;
+	//	getCurrentCamera().setRotY(time);
+		
 	}
 	
 	 	
@@ -180,9 +227,9 @@ public class Renderer extends RajawaliRenderer {
     		
     		if (coordx < half_width) 
         	{
-    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.1f);
+    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.5f);
         	}else
-        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.1f);
+        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.5f);
 		}
     		
 		if (me.getAction() == MotionEvent.ACTION_MOVE && !scaling) {
@@ -208,7 +255,6 @@ public class Renderer extends RajawaliRenderer {
         	}
             
         	getCurrentCamera().setRotation( 0,xd,yd);
-            
         } 
 
 	}
