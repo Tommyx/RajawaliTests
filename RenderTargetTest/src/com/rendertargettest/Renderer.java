@@ -2,6 +2,9 @@ package com.rendertargettest;
 
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Currency;
 
 import javax.microedition.khronos.opengles.GL10;
@@ -38,6 +41,8 @@ import rajawali.terrain.TerrainGenerator;
 
 public class Renderer extends RajawaliRenderer {
 
+	//		Log.d("path", Environment.getExternalStorageDirectory().toString() );
+
 	private Material mMaterial, PlaneMat;
 	private float time = 0;
 	private DirectionalLight mLight; 
@@ -46,6 +51,9 @@ public class Renderer extends RajawaliRenderer {
 	float touchTurnUp;
     Object3D trees[] = new Object3D[2];
 	Loader3DSMax treeParser[] = new Loader3DSMax[3];
+	ArrayList<String> models = new ArrayList<String>();
+	ArrayList<String> materials = new ArrayList<String>();
+	ArrayList<String> textures = new ArrayList<String>();
 	float coordx = 0;
 	float coordy = 0;
 	float half_width  = 0; 
@@ -56,7 +64,6 @@ public class Renderer extends RajawaliRenderer {
 	int numClouds = 100;
 	boolean scaling = false;
 	Vector3 camrot, campos = new Vector3();
-	private ExampleParticleSystem mParticleSystem;
 	
 	public Renderer(Context context) {
 		super(context);
@@ -65,7 +72,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void createLandscape(){
 		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
-				R.drawable.altar);
+				R.drawable.sheep_md);
 		try {
 			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
 			terrainParams.setScale(5f,25f, 5f);
@@ -143,53 +150,13 @@ public class Renderer extends RajawaliRenderer {
         	float scale = 30+ (float) (Math.random() * 80.f);
         	
         	clouds[i].setPosition(-100 + Math.random()*300,50+Math.random()*50,-400 + Math.random()*800);
-        	clouds[i].setRotation(30*deg,0, Math.random() * (float) Math.PI);
+        	clouds[i].setRotation(30*deg,30*deg, Math.random() * (float) Math.PI);
         	clouds[i].setScale(scale,scale,0);
 
         	addChild(clouds[i]);
         }
     }
     
-	private void createTrees()
-	{
-		treeParser[0] = new Loader3DSMax(this, R.raw.tree);
-		treeParser[1] = new Loader3DSMax(this, R.raw.tree2);
-		
-		Material[] treemat = new Material[2];
-		treemat[0] = new Material();
-		treemat[1] = new Material();
-		
-		try {
-			treemat[0].addTexture(new Texture("treetex", R.drawable.tree));
-			treemat[1].addTexture(new Texture("treetex2", R.drawable.tree2));
-		}catch(TextureException t){
-			t.printStackTrace();
-		}
-		
-		for (int i = 0; i < 2; i++){
-					
-			try {
-				treeParser[i].parse();
-			} catch(ParsingException e) {
-				e.printStackTrace();
-			}
-		
-			treemat[i].setColorInfluence(0);
-		
-			trees[i] = treeParser[i].getParsedObject();
-			trees[i].setMaterial(treemat[i]);
-		
-			for (float j = 0; j<=20; j++){
-				Object3D t = trees[i].clone();
-			
-				t.setScale(8, 8, 8);
-				t.setPosition(-150 + Math.random()*300,-2+Math.random()*2,-150 + Math.random()*300);
-				addChild(t);
-				t.setRotation(90,  0,  Math.random()*360);
-			}
-		}
-	}
-
 	private void createSkyBox(){
 		try {
 			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx, R.drawable.posy, R.drawable.negy, R.drawable.posz, R.drawable.negz);
@@ -199,33 +166,54 @@ public class Renderer extends RajawaliRenderer {
 		}
 	}
 	
-	private void create3Cubes(){
+	public void listRaw(){
+	    Field[] fields=R.raw.class.getFields();
+	    for(int count=0; count < fields.length; count++){
+	     models.add(fields[count].getName());
+	    }
+	}
+	
+	private void getModels(){
+		listRaw();
 		
-//		Log.d("path", Environment.getExternalStorageDirectory().toString() );
-
-		
-		LoaderAWD parser = new LoaderAWD(getContext().getResources(), mTextureManager, R.raw.cubes);
-		
-		try{
-			parser.parse(); 
-		}catch(ParsingException p){
-			p.printStackTrace();
+		for(String s : models){
+			if (s.endsWith("md")){
+				
+				Loader3DSMax parser = new Loader3DSMax(this, getContext().getResources().getIdentifier(s, "raw","com.rendertargettest"));
+				Material mat = new Material();
+				mat.setColorInfluence(0);
+				
+				try {
+					mat.addTexture(new Texture(s, getContext().getResources().getIdentifier(s, "drawable","com.rendertargettest")));
+				}catch(TextureException t){
+					t.printStackTrace();
+				}
+				
+				try {
+					parser.parse();
+				} catch(ParsingException e) {
+					e.printStackTrace();
+				}
+				
+				Object3D obj = parser.getParsedObject();
+				obj.setScale(30);
+				obj.setMaterial(mat);
+				
+				addChild(obj);
+			}
 		}
-		Object3D obj = parser.getParsedObject();
-		obj.setScale(10); 	
-		addChild(obj);
+		
 	}
 	
 	private void scene1(){
 		getCurrentScene().addLight(mLight);
 		getCurrentScene().setBackgroundColor(0xeeeeee);
 		
-		//createSky();
+		createSky();
 		//createSkyBox();
 		//createLandscape();
-		//createTrees();.
-		create3Cubes();
-		//createClouds(numClouds);
+		getModels();
+		createClouds(numClouds);
 		
 }
 
@@ -234,11 +222,11 @@ public class Renderer extends RajawaliRenderer {
 		mLight = new DirectionalLight(0, 0, 0f);
 		mLight.setPosition(0,50,0);
 		mLight.setColor(1.0f, 1.0f, 1.0f);
-		mLight.setPower(1);
+		mLight.setPower(10);
 		
 		setFogEnabled(true);
 		
-		getCurrentCamera().setPosition(0,50,299);
+		getCurrentCamera().setPosition(120,50,190);
 		getCurrentCamera().setRotation(0,180,0);
 		getCurrentCamera().setLookAt(0,50,0);
 		getCurrentCamera().setFogFar(100);
@@ -254,11 +242,11 @@ public class Renderer extends RajawaliRenderer {
 		super.onDrawFrame(glUnused);
 		time=0.1f;		
 		
-//		for (Object3D i : clouds){
-//			if (i.getZ() < -300){ i.setZ(i.getZ() + 1000);}
-//			float position = (float) i.getZ() - time;
-//			i.setZ(position);
-//			if (time > 2) time = 0;		}
+		for (Object3D i : clouds){
+			if (i.getZ() < -300){ i.setZ(i.getZ() + 1000);}
+			float position = (float) i.getZ() - time;
+			i.setZ(position);
+			if (time > 2) time = 0;		}
 	//	getCurrentCamera().setRotY(time);
 		
 	}
@@ -285,9 +273,9 @@ public class Renderer extends RajawaliRenderer {
 	    		
 	    		if (coordx < half_width) 
 	        	{
-	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.5f);
+	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.1f);
 	        	}else
-	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.5f);
+	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.1f);
 			}
 	    		
 			if (me.getAction() == MotionEvent.ACTION_MOVE && !scaling) {
@@ -299,17 +287,19 @@ public class Renderer extends RajawaliRenderer {
 	        	half_width = getCurrentViewportWidth() / 2;
 	    		half_height = getCurrentViewportHeight() / 2;
 	    		
+	    		float factor = 300;
+	    		
 	        	if (coordx < half_width) 
 	        	{
-	        		xd = (float) getCurrentCamera().getRotation().y + (-half_width + Math.abs(coordx)) / 100; 
+	        		xd = (float) getCurrentCamera().getRotation().y + (-half_width + Math.abs(coordx)) / factor; 
 	        	}else{ 
-	        		xd = (float) getCurrentCamera().getRotation().y + (Math.abs(coordx)-half_width) / 100;
+	        		xd = (float) getCurrentCamera().getRotation().y + (Math.abs(coordx)-half_width) / factor;
 	        	}
 	            if (coordy < half_height) 
 	        	{
-	        		yd = (float) getCurrentCamera().getRotation().z + (-half_height + Math.abs(coordy)) / 100; 
+	        		yd = (float) getCurrentCamera().getRotation().z + (-half_height + Math.abs(coordy)) / factor; 
 	        	}else{ 
-	        		yd = (float) getCurrentCamera().getRotation().z + (Math.abs(coordy)-half_height) / 100;
+	        		yd = (float) getCurrentCamera().getRotation().z + (Math.abs(coordy)-half_height) / factor;
 	        	}
 	            
 	        	getCurrentCamera().setRotation( 0,xd,yd);

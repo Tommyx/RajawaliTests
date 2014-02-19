@@ -21,31 +21,29 @@ public final class R {
         public static final int activity_vertical_margin=0x7f050001;
     }
     public static final class drawable {
-        public static final int altar=0x7f020000;
-        public static final int cloud=0x7f020001;
-        public static final int loader=0x7f020002;
-        public static final int negx=0x7f020003;
-        public static final int negy=0x7f020004;
-        public static final int negz=0x7f020005;
-        public static final int particle=0x7f020006;
-        public static final int posx=0x7f020007;
-        public static final int posy=0x7f020008;
-        public static final int posz=0x7f020009;
-        public static final int sky=0x7f02000a;
-        public static final int snow=0x7f02000b;
-        public static final int terrain=0x7f02000c;
-        public static final int tree=0x7f02000d;
-        public static final int tree2=0x7f02000e;
-        public static final int tree2snow=0x7f02000f;
-        public static final int treesnow=0x7f020010;
-        public static final int wiese1=0x7f020011;
-        public static final int wiese2=0x7f020012;
-        public static final int wiese3=0x7f020013;
-        public static final int wiese4=0x7f020014;
-        public static final int wiese5=0x7f020015;
-        public static final int wiese6=0x7f020016;
-        public static final int wiese7=0x7f020017;
-        public static final int woodfloor=0x7f020018;
+        public static final int cloud=0x7f020000;
+        public static final int loader=0x7f020001;
+        public static final int negx=0x7f020002;
+        public static final int negy=0x7f020003;
+        public static final int negz=0x7f020004;
+        public static final int posx=0x7f020005;
+        public static final int posy=0x7f020006;
+        public static final int posz=0x7f020007;
+        public static final int sheep_md=0x7f020008;
+        public static final int sky=0x7f020009;
+        public static final int snow=0x7f02000a;
+        public static final int terrain_md=0x7f02000b;
+        public static final int tree2snow=0x7f02000c;
+        public static final int trees_md=0x7f02000d;
+        public static final int treesnow=0x7f02000e;
+        public static final int wiese1=0x7f02000f;
+        public static final int wiese2=0x7f020010;
+        public static final int wiese3=0x7f020011;
+        public static final int wiese4=0x7f020012;
+        public static final int wiese5=0x7f020013;
+        public static final int wiese6=0x7f020014;
+        public static final int wiese7=0x7f020015;
+        public static final int woodfloor=0x7f020016;
     }
     public static final class id {
         public static final int action_settings=0x7f090000;
@@ -59,15 +57,13 @@ public final class R {
     public static final class raw {
         public static final int blur_fragment_shader=0x7f040000;
         public static final int copy_fragment_shader=0x7f040001;
-        public static final int cubes=0x7f040002;
-        public static final int cubes2=0x7f040003;
-        public static final int fog_fragment_shader=0x7f040004;
-        public static final int grey_scale_fragment_shader=0x7f040005;
-        public static final int minimal_vertex_shader=0x7f040006;
-        public static final int sepia_fragment_shader=0x7f040007;
-        public static final int tree=0x7f040008;
-        public static final int tree2=0x7f040009;
-        public static final int untitled=0x7f04000a;
+        public static final int fog_fragment_shader=0x7f040002;
+        public static final int grey_scale_fragment_shader=0x7f040003;
+        public static final int minimal_vertex_shader=0x7f040004;
+        public static final int sepia_fragment_shader=0x7f040005;
+        public static final int sheep_md=0x7f040006;
+        public static final int terrain_md=0x7f040007;
+        public static final int trees_md=0x7f040008;
     }
     public static final class string {
         public static final int action_settings=0x7f060001;
