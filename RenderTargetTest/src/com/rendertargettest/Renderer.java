@@ -3,6 +3,8 @@ package com.rendertargettest;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.StreamCorruptedException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Currency;
@@ -18,13 +20,16 @@ import rajawali.animation.Animation3D;
 import rajawali.animation.RotateAnimation3D;
 import rajawali.animation.Animation3D.RepeatMode;
 import android.content.Context;
+import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
 import android.os.Environment;
 import android.util.Log;
 import android.view.MotionEvent;
 import rajawali.Camera;
 import rajawali.Object3D;
+import rajawali.SerializedObject3D;
 import rajawali.materials.Material;
 import rajawali.materials.methods.DiffuseMethod;
 import rajawali.materials.textures.Texture;
@@ -38,6 +43,8 @@ import rajawali.renderer.RajawaliRenderer;
 import rajawali.scene.RajawaliScene;
 import rajawali.terrain.SquareTerrain;
 import rajawali.terrain.TerrainGenerator;
+import rajawali.util.MeshExporter;
+import rajawali.util.exporter.SerializationExporter;
 
 public class Renderer extends RajawaliRenderer {
 
@@ -61,9 +68,13 @@ public class Renderer extends RajawaliRenderer {
 	float oldi = 0; 
 	public boolean touchenabled = false;
 	Object3D[] clouds;
-	int numClouds = 100;
+	int numClouds = 30;
 	boolean scaling = false;
 	Vector3 camrot, campos = new Vector3();
+	Material streammat;
+	float mattime = 0.0f;
+	private boolean enableClouds = true;
+	MediaPlayer mP;
 	
 	public Renderer(Context context) {
 		super(context);
@@ -72,7 +83,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void createLandscape(){
 		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
-				R.drawable.sheep_md);
+				R.drawable.sheep_mdserial);
 		try {
 			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
 			terrainParams.setScale(5f,25f, 5f);
@@ -125,7 +136,7 @@ public class Renderer extends RajawaliRenderer {
 	    Plane cloud = new Plane(1,1,1,1);
         cloud.setDoubleSided(true);
         cloud.setTransparent(true);
-        cloud.setBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_COLOR);
+        cloud.setBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
         
         
         Texture texture = new Texture("cloud", R.drawable.cloud);
@@ -159,7 +170,9 @@ public class Renderer extends RajawaliRenderer {
     
 	private void createSkyBox(){
 		try {
-			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx, R.drawable.posy, R.drawable.negy, R.drawable.posz, R.drawable.negz);
+			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
+					R.drawable.posy, R.drawable.negy, R.drawable.posz,
+					R.drawable.negz);
 		}
 		catch(TextureException t) {
 			t.printStackTrace();
@@ -198,59 +211,142 @@ public class Renderer extends RajawaliRenderer {
 				Object3D obj = parser.getParsedObject();
 				obj.setScale(30);
 				obj.setMaterial(mat);
-				
+			    Serialize(obj, s+"serial");
+
 				addChild(obj);
 			}
 		}
 		
 	}
 	
+	private void getModelsSer(){
+		listRaw();
+		ObjectInputStream ois;
+		Object3D obj;
+		
+		for(String s : models)
+		{
+			if (s.endsWith("mdserial") && !s.startsWith("stream"))
+			{
+				
+				try {
+					ois = new ObjectInputStream(mContext.getResources().openRawResource(mContext.getResources().getIdentifier(s, "raw","com.rendertargettest")));
+					obj = new Object3D((SerializedObject3D) ois.readObject());
+				
+					Material mat = new Material();
+					mat.setColorInfluence(0);
+									
+					try {
+						mat.addTexture(new Texture(s, getContext().getResources().getIdentifier(s, "drawable","com.rendertargettest")));
+					}catch(TextureException t){
+						t.printStackTrace();
+					}
+				
+					obj.setScale(30);
+					obj.setMaterial(mat);
+					addChild(obj);
+					ois.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	private void flowstream(){
+
+		ObjectInputStream ois;
+		Object3D obj;
+		
+			try {
+				ois = new ObjectInputStream(mContext.getResources().openRawResource(R.raw.stream_mdserial));
+		
+			obj = new Object3D((SerializedObject3D) ois.readObject());
+			obj.setDoubleSided(true);
+			obj.setTransparent(true);
+		
+			streammat = new Material(new CustomRawVertexShader(), new CustomRawFragmentShader());
+			streammat.enableTime(true);
+			streammat.enableLighting(true);
+			
+			streammat.addTexture(new Texture("stream_mdserial", R.drawable.stream_mdserial));
+			
+			obj.setScale(30);
+			obj.setMaterial(streammat);
+			obj.setTransparent(true);
+			addChild(obj);
+			ois.close();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+
+	}
+	
 	private void scene1(){
 		getCurrentScene().addLight(mLight);
 		getCurrentScene().setBackgroundColor(0xeeeeee);
 		
-		createSky();
-		//createSkyBox();
-		//createLandscape();
-		getModels();
-		createClouds(numClouds);
+		createSkyBox();
+		getModelsSer();
+		flowstream();
+		if (enableClouds){ createClouds(numClouds); }
+		
 		
 }
+	public void stopPlayer(){
+		mP.stop();
+	}
 
 	protected void initScene() {		
+		
+		
+		mP = MediaPlayer.create(getContext(), R.raw.loop2);
+		mP.start();
+		mP.setLooping(true);
 		
 		mLight = new DirectionalLight(0, 0, 0f);
 		mLight.setPosition(0,50,0);
 		mLight.setColor(1.0f, 1.0f, 1.0f);
 		mLight.setPower(10);
 		
-		setFogEnabled(true);
-		
-		getCurrentCamera().setPosition(120,50,190);
+		getCurrentCamera().setPosition(0,90,190);
 		getCurrentCamera().setRotation(0,180,0);
-		getCurrentCamera().setLookAt(0,50,0);
+		getCurrentCamera().setLookAt(0,70,0);
 		getCurrentCamera().setFogFar(100);
 		getCurrentCamera().setFarPlane(2000);
 		
 		scene1();
-		
 		
 	}
 
 	@Override
 	public void onDrawFrame(GL10 glUnused) {
 		super.onDrawFrame(glUnused);
-		time=0.1f;		
+		time=0.2f;		
+		mattime+=0.005f;
 		
-		for (Object3D i : clouds){
-			if (i.getZ() < -300){ i.setZ(i.getZ() + 1000);}
-			float position = (float) i.getZ() - time;
-			i.setZ(position);
-			if (time > 2) time = 0;		}
-	//	getCurrentCamera().setRotY(time);
+		if(enableClouds ){
+			for (Object3D i : clouds){
+				if (i.getZ() < -300){ i.setZ(i.getZ() + 1000);}
+				float position = (float) i.getZ() - time;
+				i.setZ(position);
+				if (time > 2) time = 0;		
+			}
+		}
+     	streammat.setTime(mattime);
 		
 	}
-	 	
+
+	public void Serialize(Object3D o, String name)
+	{
+	    MeshExporter exporter = new MeshExporter(o);
+	    SerializationExporter ser = new SerializationExporter();
+	    exporter.export(name, ser.getClass());
+
+//		
+	}
+	
 	public void onTouch(MotionEvent me){
 	
 		if (touchenabled){
@@ -273,9 +369,9 @@ public class Renderer extends RajawaliRenderer {
 	    		
 	    		if (coordx < half_width) 
 	        	{
-	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=0.1f);
+	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=1.1f);
 	        	}else
-	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=0.1f);
+	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=1.1f);
 			}
 	    		
 			if (me.getAction() == MotionEvent.ACTION_MOVE && !scaling) {

@@ -2,6 +2,8 @@ package com.rendertargettest;
 
 import android.os.*;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
@@ -10,6 +12,7 @@ import android.view.ScaleGestureDetector;
 import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class MainActivity extends Starter
 {
@@ -17,6 +20,7 @@ public class MainActivity extends Starter
 	Renderer renderer;
 	ScaleGestureDetector scaleGestureDetector;
 	private Button mTouchEnabled;
+	private TextView text;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -28,8 +32,10 @@ public class MainActivity extends Starter
 		initLoader();
 		scaleGestureDetector = new ScaleGestureDetector(this, new simpleOnScaleGestureListener());
 		mTouchEnabled = new Button(this);
+		text = new TextView(this);
 		mTouchEnabled.setText("Touch");
-	         
+		text.setText("Model by PigArt@Blendswap.com");
+		
 		mTouchEnabled.setOnClickListener(new View.OnClickListener() {
 	                public void onClick(View v) 
 	                {
@@ -38,7 +44,12 @@ public class MainActivity extends Starter
 	                }
 		});
 		
+		text.setGravity(Gravity.BOTTOM | Gravity.RIGHT);
+		this.addContentView(text, 
+	            new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+		
 		showTouchButton();
+		
 	}
 	
 	public void showTouchButton()
@@ -68,7 +79,6 @@ public class MainActivity extends Starter
 	 @Override
 	 public boolean onScale(ScaleGestureDetector detector) {
 		 float i = detector.getCurrentSpan();
-		 Log.d("scale", Float.toString(i));
 		 renderer.onScale(i);
 		 return true;
 	 }
@@ -84,4 +94,35 @@ public class MainActivity extends Starter
 	  // TODO Auto-generated method stub
 	 }
 	}
+	
+	
+	 @Override
+	  public boolean onKeyDown(int keyCode, KeyEvent event) {
+	    	switch (keyCode) {
+	    		case KeyEvent.KEYCODE_MENU:
+	    			renderer.stopPlayer();
+	    			this.finish();
+	    			return true;
+	    		
+	    		case KeyEvent.KEYCODE_SEARCH:
+	    			renderer.stopPlayer();
+	    			return true;
+	    	
+	    		case KeyEvent.KEYCODE_BACK:
+	    			renderer.stopPlayer();
+	    			this.finish();
+	    			return true;
+	    		
+	    		case KeyEvent.KEYCODE_HOME:
+	    			renderer.stopPlayer();
+	    			this.finish();
+	    			return true;
+	    		default:
+	    			renderer.stopPlayer();
+	    			this.finish();
+	    			return super.onKeyDown(keyCode, event);
+	    	  }
+	    	}
+
+	
 }
