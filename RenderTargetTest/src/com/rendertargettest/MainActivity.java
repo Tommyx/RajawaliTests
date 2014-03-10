@@ -20,7 +20,7 @@ public class MainActivity extends Starter
 	Renderer renderer;
 	ScaleGestureDetector scaleGestureDetector;
 	private Button mTouchEnabled;
-	private TextView text;
+	private TextView text, text2;
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -35,6 +35,8 @@ public class MainActivity extends Starter
 		text = new TextView(this);
 		mTouchEnabled.setText("Touch");
 		text.setText("Model by PigArt@Blendswap.com");
+		text2 = new TextView(this);
+		text2.setText("Music by Helios - Hatsu Yume");
 		
 		mTouchEnabled.setOnClickListener(new View.OnClickListener() {
 	                public void onClick(View v) 
@@ -46,6 +48,9 @@ public class MainActivity extends Starter
 		
 		text.setGravity(Gravity.BOTTOM | Gravity.RIGHT);
 		this.addContentView(text, 
+	            new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+		text2.setGravity(Gravity.TOP | Gravity.CENTER);
+		this.addContentView(text2, 
 	            new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		
 		showTouchButton();
@@ -103,24 +108,24 @@ public class MainActivity extends Starter
 	    			renderer.stopPlayer();
 	    			this.finish();
 	    			return true;
-	    		
+	    		case KeyEvent.KEYCODE_POWER:
+	    			renderer.stopPlayer();
+	    			this.finish();
+	    			return true;
 	    		case KeyEvent.KEYCODE_SEARCH:
 	    			renderer.stopPlayer();
 	    			return true;
-	    	
 	    		case KeyEvent.KEYCODE_BACK:
 	    			renderer.stopPlayer();
 	    			this.finish();
 	    			return true;
-	    		
 	    		case KeyEvent.KEYCODE_HOME:
 	    			renderer.stopPlayer();
 	    			this.finish();
 	    			return true;
 	    		default:
 	    			renderer.stopPlayer();
-	    			this.finish();
-	    			return super.onKeyDown(keyCode, event);
+	    			return true;
 	    	  }
 	    	}
 

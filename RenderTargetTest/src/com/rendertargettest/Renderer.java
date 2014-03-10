@@ -57,10 +57,11 @@ public class Renderer extends RajawaliRenderer {
     float touchTurn;
 	float touchTurnUp;
     Object3D trees[] = new Object3D[2];
-	Loader3DSMax treeParser[] = new Loader3DSMax[3];
+    Loader3DSMax treeParser[] = new Loader3DSMax[3];
 	ArrayList<String> models = new ArrayList<String>();
 	ArrayList<String> materials = new ArrayList<String>();
 	ArrayList<String> textures = new ArrayList<String>();
+	ArrayList<Object3D> objects = new ArrayList<Object3D>();
 	float coordx = 0;
 	float coordy = 0;
 	float half_width  = 0; 
@@ -68,7 +69,7 @@ public class Renderer extends RajawaliRenderer {
 	float oldi = 0; 
 	public boolean touchenabled = false;
 	Object3D[] clouds;
-	int numClouds = 30;
+	int numClouds = 50;
 	boolean scaling = false;
 	Vector3 camrot, campos = new Vector3();
 	Material streammat;
@@ -79,56 +80,6 @@ public class Renderer extends RajawaliRenderer {
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
-	}
-	
-	private void createLandscape(){
-		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
-				R.drawable.sheep_mdserial);
-		try {
-			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
-			terrainParams.setScale(5f,25f, 5f);
-			terrainParams.setDivisions(128);
-			terrainParams.setTextureMult(10);
-			terrainParams.setColorMapBitmap(bmp);
-			landscape = TerrainGenerator.createSquareTerrainFromBitmap(terrainParams);
-			landscape.setPosition(0,-15,0);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		Material Landmat = new Material();
-			
-		Landmat.enableLighting(true);
-		Landmat.setDiffuseMethod(new DiffuseMethod.Lambert(0));
-		Landmat.setColorInfluence(0);
-		Landmat.setColor(0x003300);
-		
-		try {
-			Texture t = new Texture("treetex", R.drawable.wiese3);
-			Landmat.addTexture(t);
-		}catch(TextureException t){
-			t.printStackTrace();
-		}
-		landscape.setMaterial(Landmat);
-		addChild(landscape);
-	}
-	
-	private void createSky(){
-	
-		Sphere sky = new Sphere(1000, 30, 30);
-		sky.setDoubleSided(true);
-		
-		Material skymat = new Material();
-		skymat.setColorInfluence(0);
-		try{
-			skymat.addTexture(new Texture("sky", R.drawable.sky));
-		}catch(TextureException t)
-		{
-			t.printStackTrace();
-		}
-		
-		sky.setMaterial(skymat);
-		addChild(sky);
 	}
 	
 	private void createClouds(int num){
@@ -226,13 +177,17 @@ public class Renderer extends RajawaliRenderer {
 		
 		for(String s : models)
 		{
-			if (s.endsWith("mdserial") && !s.startsWith("stream"))
+			if (s.endsWith("mdserial") )
 			{
-				
+				if (s.startsWith("stream")){
+					obj = flowstream();
+					objects.add(obj);
+				}
+				else{
 				try {
 					ois = new ObjectInputStream(mContext.getResources().openRawResource(mContext.getResources().getIdentifier(s, "raw","com.rendertargettest")));
 					obj = new Object3D((SerializedObject3D) ois.readObject());
-				
+					
 					Material mat = new Material();
 					mat.setColorInfluence(0);
 									
@@ -244,16 +199,39 @@ public class Renderer extends RajawaliRenderer {
 				
 					obj.setScale(30);
 					obj.setMaterial(mat);
-					addChild(obj);
+					objects.add(obj);
 					ois.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
+			}
 		}
 	}
 	
-	private void flowstream(){
+	private void drawObjects(int count){
+		
+		for (Object3D obj : objects){
+			addChild (obj);
+		}
+		
+		for (int i = 0; i<count;i++){
+		
+			for (Object3D obj : objects){
+				Object3D mod = obj.clone();
+				if (i % 2 == 0){
+					mod.setPosition(mod.getX()+125,mod.getY()+30,mod.getZ()+50);
+					mod.setRotY(25);
+				}else{
+					mod.setPosition(mod.getX()-75,mod.getY()-50,mod.getZ()-50);
+					mod.setRotY(-25);
+				}
+				addChild(mod);
+			}
+		}	
+	}
+	
+	private Object3D flowstream(){
 
 		ObjectInputStream ois;
 		Object3D obj;
@@ -274,14 +252,18 @@ public class Renderer extends RajawaliRenderer {
 			obj.setScale(30);
 			obj.setMaterial(streammat);
 			obj.setTransparent(true);
-			addChild(obj);
 			ois.close();
+			
+			return obj;
+			
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
 
+			return null;
 	}
+	
 	
 	private void scene1(){
 		getCurrentScene().addLight(mLight);
@@ -289,11 +271,12 @@ public class Renderer extends RajawaliRenderer {
 		
 		createSkyBox();
 		getModelsSer();
-		flowstream();
+		drawObjects(2);
 		if (enableClouds){ createClouds(numClouds); }
 		
 		
-}
+	}
+	
 	public void stopPlayer(){
 		mP.stop();
 	}
@@ -310,11 +293,11 @@ public class Renderer extends RajawaliRenderer {
 		mLight.setColor(1.0f, 1.0f, 1.0f);
 		mLight.setPower(10);
 		
-		getCurrentCamera().setPosition(0,90,190);
-		getCurrentCamera().setRotation(0,180,0);
-		getCurrentCamera().setLookAt(0,70,0);
-		getCurrentCamera().setFogFar(100);
-		getCurrentCamera().setFarPlane(2000);
+		getCurrentCamera().setPosition( -30,60,260);
+		getCurrentCamera().setRotation( 0,175,0);
+		getCurrentCamera().setLookAt(   -30,55,0);
+		getCurrentCamera().setFogFar(1000);
+		getCurrentCamera().setFarPlane(5000);
 		
 		scene1();
 		
@@ -324,7 +307,7 @@ public class Renderer extends RajawaliRenderer {
 	public void onDrawFrame(GL10 glUnused) {
 		super.onDrawFrame(glUnused);
 		time=0.2f;		
-		mattime+=0.005f;
+		mattime+=0.01f;
 		
 		if(enableClouds ){
 			for (Object3D i : clouds){
@@ -359,20 +342,23 @@ public class Renderer extends RajawaliRenderer {
 			    
 			}
 			
-			if (me.getAction() == MotionEvent.ACTION_POINTER_DOWN){
-				coordx = me.getX();
-	        	coordy = me.getY();
-	        	half_width = getCurrentViewportWidth() / 2;
-	    		half_height = getCurrentViewportHeight() / 2;
-	    		
-	    		campos = getCurrentCamera().getPosition(); 
-	    		
-	    		if (coordx < half_width) 
-	        	{
-	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=1.1f);
-	        	}else
-	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=1.1f);
-			}
+//			if (me.getAction() == MotionEvent.ACTION_POINTER_DOWN){
+//				coordx = me.getX();
+//	        	coordy = me.getY();
+//	        	half_width = getCurrentViewportWidth() / 2;
+//	    		half_height = getCurrentViewportHeight() / 2;
+//	    		
+//	    		campos = getCurrentCamera().getPosition(); 
+//	    		
+//	    		if (coordx < half_width) 
+//	        	{
+//	    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z-=1.1f);
+//	    			Log.d("za", Double.toString(campos.z));
+//	    			
+//	        	}else
+//	        		getCurrentCamera().setPosition(campos.x, campos.y, campos.z+=1.1f);
+//	    			Log.d("za", Double.toString(campos.z));
+//			}
 	    		
 			if (me.getAction() == MotionEvent.ACTION_MOVE && !scaling) {
 	        	coordx = me.getX();

@@ -12,10 +12,6 @@ public final class R {
     }
     public static final class dimen {
         /**  Default screen margins, per the Android Design guidelines. 
-
-         Customize dimensions originally defined in res/values/dimens.xml (such as
-         screen margins) for sw720dp devices (e.g. 10" tablets) in landscape here.
-    
          */
         public static final int activity_horizontal_margin=0x7f050000;
         public static final int activity_vertical_margin=0x7f050001;
@@ -31,25 +27,9 @@ public final class R {
         public static final int posx=0x7f020007;
         public static final int posy=0x7f020008;
         public static final int posz=0x7f020009;
-        public static final int sheep_mdserial=0x7f02000a;
-        public static final int sky=0x7f02000b;
-        public static final int sky2=0x7f02000c;
-        public static final int snow=0x7f02000d;
-        public static final int stone_mdserial=0x7f02000e;
-        public static final int stream_mdserial=0x7f02000f;
-        public static final int terrain_mdserial=0x7f020010;
-        public static final int tree2snow=0x7f020011;
-        public static final int tree_mdserial=0x7f020012;
-        public static final int trees_mdserial=0x7f020013;
-        public static final int treesnow=0x7f020014;
-        public static final int wiese1=0x7f020015;
-        public static final int wiese2=0x7f020016;
-        public static final int wiese3=0x7f020017;
-        public static final int wiese4=0x7f020018;
-        public static final int wiese5=0x7f020019;
-        public static final int wiese6=0x7f02001a;
-        public static final int wiese7=0x7f02001b;
-        public static final int woodfloor=0x7f02001c;
+        public static final int stone_mdserial=0x7f02000a;
+        public static final int stream_mdserial=0x7f02000b;
+        public static final int tree_mdserial=0x7f02000c;
     }
     public static final class id {
         public static final int action_settings=0x7f090000;
@@ -63,21 +43,18 @@ public final class R {
     public static final class raw {
         public static final int blur_fragment_shader=0x7f040000;
         public static final int copy_fragment_shader=0x7f040001;
-        public static final int custom_frag_shader=0x7f040002;
-        public static final int custom_vert_shader=0x7f040003;
-        public static final int dream_vision_frag=0x7f040004;
-        public static final int dream_vision_vert=0x7f040005;
-        public static final int flyingisland_mdserial=0x7f040006;
-        public static final int fog_fragment_shader=0x7f040007;
-        public static final int grass_mdserial=0x7f040008;
-        public static final int grey_scale_fragment_shader=0x7f040009;
-        public static final int loop2=0x7f04000a;
-        public static final int minimal_vertex_shader=0x7f04000b;
-        public static final int sepia_fragment_shader=0x7f04000c;
-        public static final int stone_mdserial=0x7f04000d;
-        public static final int stream_md=0x7f04000e;
-        public static final int stream_mdserial=0x7f04000f;
-        public static final int tree_mdserial=0x7f040010;
+        public static final int dream_vision_frag=0x7f040002;
+        public static final int dream_vision_vert=0x7f040003;
+        public static final int flyingisland_mdserial=0x7f040004;
+        public static final int fog_fragment_shader=0x7f040005;
+        public static final int grass_mdserial=0x7f040006;
+        public static final int grey_scale_fragment_shader=0x7f040007;
+        public static final int loop2=0x7f040008;
+        public static final int minimal_vertex_shader=0x7f040009;
+        public static final int sepia_fragment_shader=0x7f04000a;
+        public static final int stone_mdserial=0x7f04000b;
+        public static final int stream_mdserial=0x7f04000c;
+        public static final int tree_mdserial=0x7f04000d;
     }
     public static final class string {
         public static final int action_settings=0x7f060001;
@@ -94,17 +71,6 @@ public final class R {
             res/values-vXX/styles.xml, while customizations related to
             backward-compatibility can go here.
         
-
-        Base application theme for API 11+. This theme completely replaces
-        AppBaseTheme from res/values/styles.xml on API 11+ devices.
-    
- API 11 theme customizations can go here. 
-
-        Base application theme for API 14+. This theme completely replaces
-        AppBaseTheme from BOTH res/values/styles.xml and
-        res/values-v11/styles.xml on API 14+ devices.
-    
- API 14 theme customizations can go here. 
          */
         public static final int AppBaseTheme=0x7f070000;
         /**  Application theme. 
