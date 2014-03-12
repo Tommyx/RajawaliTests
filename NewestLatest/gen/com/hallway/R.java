@@ -29,16 +29,17 @@ public final class R {
         public static final int cube3_nm=0x7f020009;
         public static final int level_1=0x7f02000a;
         public static final int level_2=0x7f02000b;
-        public static final int light=0x7f02000c;
-        public static final int loader=0x7f02000d;
-        public static final int negx=0x7f02000e;
-        public static final int negy=0x7f02000f;
-        public static final int negz=0x7f020010;
-        public static final int posx=0x7f020011;
-        public static final int posy=0x7f020012;
-        public static final int posz=0x7f020013;
-        public static final int stone_wall=0x7f020014;
-        public static final int stone_wall_nm=0x7f020015;
+        public static final int level_99=0x7f02000c;
+        public static final int light=0x7f02000d;
+        public static final int loader=0x7f02000e;
+        public static final int negx=0x7f02000f;
+        public static final int negy=0x7f020010;
+        public static final int negz=0x7f020011;
+        public static final int posx=0x7f020012;
+        public static final int posy=0x7f020013;
+        public static final int posz=0x7f020014;
+        public static final int stone_wall=0x7f020015;
+        public static final int stone_wall_nm=0x7f020016;
     }
     public static final class id {
         public static final int action_settings=0x7f090000;

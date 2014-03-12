@@ -43,9 +43,9 @@ public class MainActivity extends Starter
 		text2 = new TextView(this);
 		text2.setText("You hit the wall!");
 
-		text.setGravity(Gravity.BOTTOM | Gravity.CENTER);
-		this.addContentView(text, 
-	            new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+//		text.setGravity(Gravity.BOTTOM | Gravity.CENTER);
+//this.addContentView(text, 
+//	            new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
 		
 //		mTouchEnabled.setOnClickListener(new View.OnClickListener() {
 //	                public void onClick(View v) 

@@ -62,24 +62,23 @@ import rajawali.util.exporter.SerializationExporter;
 
 public class Renderer extends RajawaliRenderer {
 
-	//		Log.d("path", Environment.getExternalStorageDirectory().toString() );
+//		Log.d("path", Environment.getExternalStorageDirectory().toString() );
 
 	IBoundingVolume bbox2 ;
-	boolean stop_all, level_loaded = false;
-	private float speed = 0;
+	boolean stop_all, level_loaded, unloaded = false;
+	private float speed, speed2 = 0;
 	int size = 4;
 	int numclones = 1;
 	int cubesize = 60*numclones;
-	float score = 0;
+	float score = -100;
 	boolean rotate, rotatenow = false;
 	private PointLight mLight; 
     float touchTurn;
 	float touchTurnUp;
 	
 	Material levelMat;
-	
+	Material scoreMat;
 	float rotationdegree = 0;
-	
 	private boolean mBoxIntersect = false;
 	Object3D camerabox;
     Loader3DSMax treeParser[] = new Loader3DSMax[3];
@@ -92,15 +91,20 @@ public class Renderer extends RajawaliRenderer {
 	float coordy = 0;
 	float half_width  = 0; 
 	float half_height = 0; 
-	float oldi = 0; 
+	
 	public boolean touchenabled = true;
 	boolean scaling = false;
+	
 	Vector3 camrot, campos = new Vector3();
+	
 	MediaPlayer mP;
+	
 	Object3D tunnelcube;
 	Object3D level;
+	
 	Plane levelPlane = new Plane(10,10,1,1);
-	Plane scorePlane = new Plane(4,1,1,1);
+	Plane scorePlane = new Plane(4,.5f,1,1);
+	
 	Bitmap mScoreBitmap;
 	AlphaMapTexture mScoreTexture;
 	Material stdMat,scoreMaterial, collidermat; 
@@ -109,8 +113,8 @@ public class Renderer extends RajawaliRenderer {
 		super(context);
 		setFrameRate(60);
 	}
-	
-	public void loadStdMat(){
+
+	public void createStdMat(){
 		stdMat = new Material();
 		
 		stdMat.setDiffuseMethod(new DiffuseMethod.Lambert(1.0f));
@@ -131,7 +135,7 @@ public class Renderer extends RajawaliRenderer {
 		
 	}
 	
-	public void loadColiderMat(){
+	public void createColliderMat(){
 		collidermat = new Material();
 		
 		collidermat.setDiffuseMethod(new DiffuseMethod.Lambert(1.0f));
@@ -151,6 +155,27 @@ public class Renderer extends RajawaliRenderer {
 		
 	}
 	
+	private void createScoreMat(){
+		scoreMat = new Material();
+		scoreMat.enableLighting(true);
+		scoreMat.setDiffuseMethod(new DiffuseMethod.Lambert());
+		mScoreBitmap = Bitmap.createBitmap(256, 256, Config.ARGB_8888);
+		mScoreTexture = new AlphaMapTexture("timeTexture", mScoreBitmap);
+		try {
+			scoreMat.addTexture(mScoreTexture);
+		} catch (TextureException e) {
+			e.printStackTrace();
+		}
+		
+		scoreMat.setColorInfluence(1);
+		
+		scorePlane.setMaterial(scoreMat);
+		scorePlane.setDoubleSided(true);
+		scorePlane.setColor(Color.WHITE);
+		scorePlane.setPosition(-5,5,1);
+		
+	}
+	
 	private Object3D loadCube(int nr){
 		String s = "cube"+Integer.toString(nr);
 		Log.d("model", s);
@@ -166,9 +191,7 @@ public class Renderer extends RajawaliRenderer {
 		Object3D obj = parser.getParsedObject();
 		obj.setScale(10);
 		obj.setDoubleSided(true);
-		obj.setTransparent(false);
 		obj.setMaterial(stdMat);
-		obj.setShowBoundingVolume(true);
 		
 		addChild(obj);
 		return obj;
@@ -191,7 +214,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void setColliders(Object3D level_object){
 		
-		for (int i=0; i< level_object.getNumChildren(); i++)
+		for (int i=0; i<level_object.getNumChildren(); i++)
 		{
 			colliders.add(level_object.getChildAt(i));
 		}
@@ -200,9 +223,11 @@ public class Renderer extends RajawaliRenderer {
 	private void loadLevel(int levelnr){
 		
 		level = loadCubeAWD(levelnr);
-		level.setMaterial(collidermat);
+		level.setZ(100);
+		level.setMaterial(stdMat);
 		setColliders(level);
 		level_loaded = true;
+		level.setVisible(true);
 	}
 	
 	private void unloadLevel(){
@@ -218,33 +243,40 @@ public class Renderer extends RajawaliRenderer {
 		for (int i=0; i<colliders.size();i++){
 			colliders.remove(i); 
 		}
+	    colliders = new ArrayList<Object3D>();
 	}
 	
 	
-	protected void initScene() {		
-		
+	protected void initScene() {
 		//mP = MediaPlayer.create(getContext(), R.raw.loop2);
 		
 		mLight = new PointLight(); 
 		mLight.setColor(1.0f, 1.0f, 1.0f);
 		mLight.setPower(20f);
 		
-		loadStdMat();
-		loadColiderMat();
+		createStdMat();
+		createColliderMat();
+		createScoreMat();
 		
 		camerabox = new Cube(.5f);
 		camerabox.setMaterial(stdMat);
 		addChild(camerabox);
-		
 		//createSkyBox();
 		tunnelcube = loadCube(1);
 		
 		getCurrentScene().addLight(mLight);
 		getCurrentScene().setBackgroundColor(0, 0, 0, 0);
-		getCurrentCamera().setPosition( 0,1,-10);
+		getCurrentCamera().setPosition( 0,1,-20);
 		getCurrentCamera().setRotation( 0,0,0);
 		getCurrentCamera().setLookAt(   0,1,0);	
 		getCurrentCamera().setFarPlane(1500);	
+		
+		create_level_Mat(1);
+		levelPlane.setTransparent(true);
+		levelPlane.setMaterial(levelMat);
+		levelPlane.setVisible(false);
+		addChild(levelPlane);
+		
 		
 	}
 	
@@ -260,124 +292,137 @@ public class Renderer extends RajawaliRenderer {
 	}
 	
 	
-	private void creatScoreMat(){
-		Material timeSphereMaterial = new Material();
-		timeSphereMaterial.enableLighting(true);
-		timeSphereMaterial.setDiffuseMethod(new DiffuseMethod.Lambert());
-		mScoreBitmap = Bitmap.createBitmap(256, 256, Config.ARGB_8888);
-		mScoreTexture = new AlphaMapTexture("timeTexture", mScoreBitmap);
-		try {
-			timeSphereMaterial.addTexture(mScoreTexture);
-		} catch (TextureException e) {
-			e.printStackTrace();
-		}
-		timeSphereMaterial.setColorInfluence(1);
-
+	private void showScore(float score){
+	
 	}
 	
 	@Override
 	public void onDrawFrame(GL10 glUnused) {
 		super.onDrawFrame(glUnused);
-		speed=0.2f;		
-		score++;
+		speed=0.3f;		
+		score+=1;
 		
 		if (!stop_all){
-			if (score == 10){
-				showLevel(1);
+			loadLevel(1);
+			if (score == -99){
+				showLevelPlane(1);
 			}
 			
-			
-			if (score == 100){
-				hideLevel();
+			if (score == 0){
+				hideLevelPlane();
+			//	scorePlane.setVisible(true);
 				loadLevel(1);
 			}
+			
+			//showScore(score);
 				
-		camerabox.setPosition( getCurrentCamera().getPosition().x,
-				getCurrentCamera().getPosition().y,
-				getCurrentCamera().getPosition().z + 0);
-	
+			camerabox.setPosition( getCurrentCamera().getPosition().x,
+					getCurrentCamera().getPosition().y,
+					getCurrentCamera().getPosition().z + 2);
 		
-		mLight.setPosition( getCurrentCamera().getPosition().x,
-				getCurrentCamera().getPosition().y-1,
-				getCurrentCamera().getPosition().z + 30);
+			mLight.setPosition( getCurrentCamera().getPosition().x,
+					getCurrentCamera().getPosition().y-1,
+					getCurrentCamera().getPosition().z + 20);
+			
+			
+			if (score == 1000){ 
+				rotationdegree = (float) getCurrentCamera().getRotY();
+				rotatenow = true;
+				speed = 1;
+			}
 		
-		for (Object3D col : colliders){
-			col.setShowBoundingVolume(true);
-
-			IBoundingVolume bbox = col.getGeometry().getBoundingBox();
-			bbox.transform(col.getModelMatrix());
-			bbox.setBoundingColor(Color.WHITE);
-			bbox2= camerabox.getGeometry().getBoundingBox();
-			bbox2.transform(camerabox.getModelMatrix());
-			mBoxIntersect = bbox.intersectsWith(bbox2);
-				
-			if (mBoxIntersect){
-				Log.d("HIT!!!!!!!!", "HITTTTTT");
-				stop();
+			if (score == 2000) {
+				unloadLevel();
+				showLevelPlane(2);
 			}
 			
-			if (col.getZ()< 10) {
-				removeChild(col);
-				colliders.remove(col);
+			if (score == 2100){
+				hideLevelPlane();
+				loadLevel(2);
 			}
-		}	
 		
-		//if (score % 4 == 0) time+=0.2f;
-		
-		if (score == 1000){ 
-			rotationdegree = (float) getCurrentCamera().getRotY();
-			rotatenow = true;
-			speed = 1;
-		}
-		
-		if (score == 2000) {
-			unloadLevel();
-			showLevel(2);
-		}
-		if (score == 2100){
-			hideLevel();
-			loadLevel(2);
-		}
-		
-		if (rotatenow){
-			if ( rotationdegree <= 180) 
-				rotationdegree+=speed;  
-			else { rotatenow = false; 
-			rotationdegree = 0;
+			if (rotatenow){
+				if ( rotationdegree <= 180) 
+					rotationdegree+=speed;  
+				else { rotatenow = false; 
+					rotationdegree = 0;
+				 	 }
 			}
-		}
-		
-		if (tunnelcube.getZ() < -60){ 
-			tunnelcube.setZ(tunnelcube.getZ()+60);
-		}
-		
-		if (rotatenow){ 
-			getCurrentCamera().setRotX(getCurrentCamera().getRotX() + speed);
-			camerabox.setRotZ(camerabox.getRotZ()+speed);
-		}
-		
-		checkBounds();
-		
-		float position = (float) tunnelcube.getZ() - speed;
+			
+			if (tunnelcube.getZ() < -60){ 
+				tunnelcube.setZ(tunnelcube.getZ()+60);
+			}
+			
+			if (rotatenow){ 
+				getCurrentCamera().setRotX(getCurrentCamera().getRotX() + speed);
+				camerabox.setRotZ(camerabox.getRotZ()+speed);
+			}
+			
+			checkBounds();
+			
+			float position = (float) tunnelcube.getZ() - speed;
 			tunnelcube.setZ(position);
-		if (level_loaded){
-			float position2 = (float) level.getZ() - speed;
-			level.setZ(position2);
-		}
-		
-		if (speed > 100) speed = 0;		
 			
+			if (level_loaded){
+				float position2 = (float) level.getZ() - speed;
+				level.setZ(position2);
+				
+				for (Object3D col : colliders){
+					
+					IBoundingVolume bbox = col.getGeometry().getBoundingBox();
+					bbox.transform(col.getModelMatrix());
+					bbox2= camerabox.getGeometry().getBoundingBox();
+					bbox2.transform(camerabox.getModelMatrix());
+					
+					mBoxIntersect = bbox.intersectsWith(bbox2);
+						
+					if (mBoxIntersect){
+						Log.d("HIT!!!!!!!!", "HITTTTTT");
+						stop();
+					}
+				
+					if (col.getZ()< -40) {
+						removeChild(col);
+						colliders.remove(col);
+					}
+				}	
+			}
 		}
-		else{
-			double n = getCurrentCamera().getZ();
-			getCurrentCamera().setZ( n++ );
-		}
+//		}else{
+//			double n = tunnelcube.getZ();
+//			getCurrentCamera().setPosition(0,1,-20);
+//			getCurrentCamera().setRotation(0,0,0);
+//			level.setVisible(false);	
+//			
+//			if(n> -1000){ 
+//				speed2+=.1;
+//				tunnelcube.setZ( n-speed2 );
+//				showLevelPlane(99);
+//			}
+//			
+//			if (!unloaded){
+//				hideLevelPlane();
+//				reset();
+//			}
+//		}
+	}
+	
+	private void reset(){
+		
+		level.setVisible(false); 
+		removeChild(level);
+		tunnelcube.setZ(0);
+		stop_all = false;
+		score = -100;
+		unloaded = false;
+
 	}
 
 	public void stop(){
 		stop_all = true;
 		touchenabled = false;
 	}
+	
 	
 	private void create_level_Mat(int nr){
 		
@@ -394,21 +439,17 @@ public class Renderer extends RajawaliRenderer {
 		}
 	}
 	
-	private void showLevel(int nr){
+	
+	private void showLevelPlane(int nr){
 		
-		create_level_Mat(nr);
 		
-		levelPlane.setName("levelplane");
-		levelPlane.setTransparent(true);
-		levelPlane.setMaterial(levelMat);
 		levelPlane.setVisible(true);
-		addChild(levelPlane);
 	}
+	
 
-	private void hideLevel(){
+	private void hideLevelPlane(){
 		levelPlane.setVisible(false);
 		removeChild(levelPlane);
-		
 	}
 	
 	public void onTouch(MotionEvent me){
@@ -460,17 +501,17 @@ public class Renderer extends RajawaliRenderer {
 		scaling = true;
 		campos = getCurrentCamera().getPosition(); 
     	
-		//if (campos.z < 500 && campos.z > 0){
+		if (campos.z < 500 && campos.z > 0){
 //		if (oldi > i)
 //    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z -= 1);
 //    	if (oldi < i)
 //    			getCurrentCamera().setPosition(campos.x, campos.y, campos.z += 1);
 //    	oldi = i;
 //		
-    	/*}else{
+    	}else{
 			if(campos.z > 500) campos.z = 499;
 			if(campos.z < 0) campos.z = 1;
-		}*/
+		}
 	}
 
 	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
@@ -508,4 +549,5 @@ public class Renderer extends RajawaliRenderer {
 
 	public void stopPlayer(){
 		
+	}
 }
