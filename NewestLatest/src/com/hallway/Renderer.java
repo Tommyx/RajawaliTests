@@ -1,5 +1,6 @@
 package com.hallway;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -10,12 +11,16 @@ import java.util.Locale;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+
 import rajawali.parser.Loader3DSMax;
 import rajawali.parser.LoaderAWD;
 import rajawali.parser.LoaderMD2;
+import rajawali.parser.LoaderOBJ;
 import rajawali.parser.ParsingException;
 
 import android.content.Context;
+import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -24,6 +29,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Bitmap.Config;
 import android.graphics.PorterDuff.Mode;
 import android.media.MediaPlayer;
+import android.opengl.GLES20;
 import android.os.Bundle;
 import android.text.GetChars;
 import android.util.Log;
@@ -82,11 +88,13 @@ public class Renderer extends RajawaliRenderer {
 	private boolean mBoxIntersect = false;
 	Object3D camerabox;
     Loader3DSMax treeParser[] = new Loader3DSMax[3];
+    
 	ArrayList<String> models = new ArrayList<String>();
 	ArrayList<String> materials = new ArrayList<String>();
 	ArrayList<String> textures = new ArrayList<String>();
 	ArrayList<Object3D> colliders = new ArrayList<Object3D>();
 	ArrayList<Object3D> clones = new ArrayList<Object3D>();
+	
 	float coordx = 0;
 	float coordy = 0;
 	float half_width  = 0; 
@@ -101,8 +109,9 @@ public class Renderer extends RajawaliRenderer {
 	
 	Object3D tunnelcube;
 	Object3D level;
+	Object3D colliderObj;
 	
-	Plane levelPlane = new Plane(10,10,1,1);
+	VertexAnimationObject3D levelPlane = new VertexAnimationObject3D();
 	Plane scorePlane = new Plane(4,.5f,1,1);
 	
 	Bitmap mScoreBitmap;
@@ -114,6 +123,21 @@ public class Renderer extends RajawaliRenderer {
 		setFrameRate(60);
 	}
 
+	private String[] listFiles(String dirFrom) throws IOException {
+        AssetManager am = getContext().getAssets();
+        String fileList[];
+        int numItems = am.list(dirFrom).length;
+		fileList = new String[numItems];
+		if (fileList != null)
+            {   
+                for ( int i = 0;i<fileList.length;i++)
+                {
+                    Log.d("",fileList[i]); 
+                }
+            }
+		return fileList;
+    }
+	
 	public void createStdMat(){
 		stdMat = new Material();
 		
@@ -212,6 +236,21 @@ public class Renderer extends RajawaliRenderer {
 		return obj;
 	}
 	
+	private Object3D getColliders(int nr){
+		
+		LoaderAWD parser = new LoaderAWD(getContext().getResources(), getTextureManager() , getContext().getResources().getIdentifier("level_"+nr+"_colliders", "raw","com.hallway"));
+		
+		try {
+			parser.parse();
+		} catch(ParsingException e) {
+			e.printStackTrace();
+		}
+		
+		Object3D obj = parser.getParsedObject();
+		addChild(obj);
+		return obj;
+	}
+	
 	private void setColliders(Object3D level_object){
 		
 		for (int i=0; i<level_object.getNumChildren(); i++)
@@ -223,9 +262,10 @@ public class Renderer extends RajawaliRenderer {
 	private void loadLevel(int levelnr){
 		
 		level = loadCubeAWD(levelnr);
+		colliderObj = getColliders(levelnr);
+		setColliders(colliderObj);
 		level.setZ(100);
 		level.setMaterial(stdMat);
-		setColliders(level);
 		level_loaded = true;
 		level.setVisible(true);
 	}
@@ -246,6 +286,25 @@ public class Renderer extends RajawaliRenderer {
 	    colliders = new ArrayList<Object3D>();
 	}
 	
+	private void load_plane_anim(){
+		LoaderMD2 parser = new LoaderMD2(mContext.getResources(),
+				mTextureManager, R.raw.melt);
+		try {
+			parser.parse();
+
+			levelPlane = (VertexAnimationObject3D) parser
+					.getParsedAnimationObject();
+			
+			levelPlane.setFps(2);
+			levelPlane.setScale(.007f);
+			levelPlane.setRotX(90);
+			levelPlane.setZ(-5);
+			levelPlane.setDoubleSided(true);
+		//	levelPlane.setDrawingMode(GLES20.GL_POINTS);
+		} catch (ParsingException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	protected void initScene() {
 		//mP = MediaPlayer.create(getContext(), R.raw.loop2);
@@ -258,26 +317,30 @@ public class Renderer extends RajawaliRenderer {
 		createColliderMat();
 		createScoreMat();
 		
-		camerabox = new Cube(.5f);
+		camerabox = new Cube(.1f);
 		camerabox.setMaterial(stdMat);
 		addChild(camerabox);
-		//createSkyBox();
+		camerabox.setVisible(false);
 		tunnelcube = loadCube(1);
+		
+		//createSkyBox();
 		
 		getCurrentScene().addLight(mLight);
 		getCurrentScene().setBackgroundColor(0, 0, 0, 0);
-		getCurrentCamera().setPosition( 0,1,-20);
+		getCurrentCamera().setPosition( 0,1,-10);
 		getCurrentCamera().setRotation( 0,0,0);
 		getCurrentCamera().setLookAt(   0,1,0);	
 		getCurrentCamera().setFarPlane(1500);	
 		
-		create_level_Mat(1);
-		levelPlane.setTransparent(true);
-		levelPlane.setMaterial(levelMat);
-		levelPlane.setVisible(false);
-		addChild(levelPlane);
-		
-		
+	//	create_level_Mat(1);
+	//	load_plane_anim();
+	//	levelPlane.setMaterial(stdMat);
+	//	levelPlane.setVisible(true);
+	//	levelPlane.setZ(-9);
+	//	levelPlane.setY(1);
+	//	addChild(levelPlane);
+	//	levelPlane.play(true);
+		loadLevel(1);
 	}
 	
 	private void createSkyBox(){
@@ -291,7 +354,6 @@ public class Renderer extends RajawaliRenderer {
 		}
 	}
 	
-	
 	private void showScore(float score){
 	
 	}
@@ -302,23 +364,24 @@ public class Renderer extends RajawaliRenderer {
 		speed=0.3f;		
 		score+=1;
 		
-		if (!stop_all){
-			loadLevel(1);
+		if (!stop_all)
+		{
 			if (score == -99){
+				loadLevel(1);
 				showLevelPlane(1);
 			}
 			
 			if (score == 0){
 				hideLevelPlane();
-			//	scorePlane.setVisible(true);
+				scorePlane.setVisible(true);
 				loadLevel(1);
 			}
 			
-			//showScore(score);
+			showScore(score);
 				
 			camerabox.setPosition( getCurrentCamera().getPosition().x,
 					getCurrentCamera().getPosition().y,
-					getCurrentCamera().getPosition().z + 2);
+					getCurrentCamera().getPosition().z);
 		
 			mLight.setPosition( getCurrentCamera().getPosition().x,
 					getCurrentCamera().getPosition().y-1,
@@ -349,15 +412,18 @@ public class Renderer extends RajawaliRenderer {
 				 	 }
 			}
 			
-			if (tunnelcube.getZ() < -60){ 
-				tunnelcube.setZ(tunnelcube.getZ()+60);
-			}
 			
 			if (rotatenow){ 
 				getCurrentCamera().setRotX(getCurrentCamera().getRotX() + speed);
 				camerabox.setRotZ(camerabox.getRotZ()+speed);
 			}
 			
+			
+//			Repeat Tunnel		
+			if (tunnelcube.getZ() < -60){ 
+				tunnelcube.setZ(tunnelcube.getZ()+60);
+			}
+
 			checkBounds();
 			
 			float position = (float) tunnelcube.getZ() - speed;
@@ -387,24 +453,23 @@ public class Renderer extends RajawaliRenderer {
 					}
 				}	
 			}
+		}else{
+			double n = tunnelcube.getZ();
+			getCurrentCamera().setPosition(0,1,-10);
+			getCurrentCamera().setRotation(0,0,0);
+			level.setVisible(false);	
+			
+			if(n> -1000){ 
+				speed2+=.1;
+				tunnelcube.setZ( n-speed2 );
+				showLevelPlane(99);
+			}
+			
+			if (!unloaded){
+				hideLevelPlane();
+				reset();
+			}
 		}
-//		}else{
-//			double n = tunnelcube.getZ();
-//			getCurrentCamera().setPosition(0,1,-20);
-//			getCurrentCamera().setRotation(0,0,0);
-//			level.setVisible(false);	
-//			
-//			if(n> -1000){ 
-//				speed2+=.1;
-//				tunnelcube.setZ( n-speed2 );
-//				showLevelPlane(99);
-//			}
-//			
-//			if (!unloaded){
-//				hideLevelPlane();
-//				reset();
-//			}
-//		}
 	}
 	
 	private void reset(){
@@ -423,7 +488,6 @@ public class Renderer extends RajawaliRenderer {
 		touchenabled = false;
 	}
 	
-	
 	private void create_level_Mat(int nr){
 		
 		levelMat = new Material();
@@ -439,14 +503,12 @@ public class Renderer extends RajawaliRenderer {
 		}
 	}
 	
-	
 	private void showLevelPlane(int nr){
 		
 		
 		levelPlane.setVisible(true);
 	}
 	
-
 	private void hideLevelPlane(){
 		levelPlane.setVisible(false);
 		removeChild(levelPlane);
@@ -521,7 +583,8 @@ public class Renderer extends RajawaliRenderer {
 		((Starter) mContext).hideLoader();
 	}
 	
-	private void checkBounds(){
+	private void checkBounds()
+	{
 		if (camerabox.getX() >=size)
 		{ 
 			camerabox.setX(size);
