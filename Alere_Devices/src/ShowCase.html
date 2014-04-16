@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Pima Analyser Showcase</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #333333;
+
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<script src="libs/three.min.js"></script>
+<script src="libs/OrbitControls.js"></script>
+<script src="libs/tween.min.js"></script>
+<script src="libs/dat.gui.min.js"></script>
+<script src="libs/getNavigator.js"></script>
+<script src="libs/CSS3DRenderer.js"></script>
+<script type="text/javascript">
+
+var container;
+var camera, scene, projector, renderer, controls, loader ;
+var light0, light1;
+var objects         = [];
+var MARGIN          = 100;
+var WIDTH           = window.innerWidth || 2;
+var HEIGHT          = window.innerHeight || ( 2 + 2 * MARGIN );
+var SCREEN_WIDTH    = WIDTH;
+var SCREEN_HEIGHT   = HEIGHT - 2 * MARGIN;
+var start_time      = Date.now();
+var obj, mobj;
+var open = true;
+var tooltipshown = false;
+var stopRotation = false;
+var objects = [];
+var tobjects = [];
+var mobjects = [];
+var plane, tween, ctx;
+var target = new THREE.Vector3(0,1.0,0);
+var radius = 6;
+var constant = 1;
+var displayToolTip;
+var mouse           = new THREE.Vector2(),
+        offset              = new THREE.Vector3(),
+        INTERSECTED, SELECTED;
+
+var renderAM    = true;
+var renderATR   = true;
+var renderPima  = true;
+
+var parameters =
+{
+    Controls:  false,
+    Start : function(){
+        insertCartridge();
+    },
+    ShowATR : function(){
+        showATR();
+    },
+    ShowPima : function(){
+        showPima();
+    },
+    ShowAM : function(){
+        showAM();
+    },
+    ShowHivNat : function(){
+        showHN();
+    }
+};
+
+var renderTargetParameters = {
+
+    minFilter:     THREE.LinearFilter,
+    magFilter:     THREE.LinearFilter,
+    format:        THREE.RGBFormat,
+    stencilBuffer: true
+};
+
+var renderTargetPima    = new THREE.WebGLRenderTarget( SCREEN_WIDTH, SCREEN_HEIGHT, renderTargetParameters );
+var renderTargetATR     = new THREE.WebGLRenderTarget( SCREEN_WIDTH, SCREEN_HEIGHT, renderTargetParameters );
+var renderTargetAM      = new THREE.WebGLRenderTarget( SCREEN_WIDTH, SCREEN_HEIGHT, renderTargetParameters );
+
+var deg =  Math.PI / 180;
+var theta = 0;
+var reflectionCube, refractionCube;
+
+init();
+animate();
+
+function init() {
+
+    container   = document.createElement( 'div' );
+
+    projector   = new THREE.Projector();
+    renderer    = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
+    renderer.setClearColor(0xFFFFFF);
+
+    cameraPima      = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1000 );
+    cameraATR      = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1000 );
+    cameraAM       = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1000 );
+
+    camera        = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1000 );
+    controls    = new THREE.OrbitControls(camera, renderer.domElement );
+
+    scene       = new THREE.Scene();
+    scenePima   = new THREE.Scene();
+    sceneAtr    = new THREE.Scene();
+    sceneAM    = new THREE.Scene();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    container.appendChild( renderer.domElement );
+
+    document.body.appendChild( container );
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+    cameraPima.position.y = 3;
+    cameraATR.position.y = 4;
+    cameraAM.position.y = 2;
+
+    camera.position.x = 0;
+    camera.position.y = 2;
+    camera.position.z = 2;
+    
+    camera.lookAt(new THREE.Vector3(0,-.20,-10));
+    
+    
+    sceneAtr.fog = new THREE.Fog(0xffffff, 1,20);
+    scenePima.fog = new THREE.Fog(0xffffff, 1,20);
+    sceneAM.fog = new THREE.Fog(0xffffff, 1,20);
+    scene.fog = new THREE.Fog(0xffffff, 1,35);
+
+    light1= new THREE.AmbientLight();
+    light1.position.set(0,15,0);
+    sceneAtr.add(light1);
+	scenePima.add(light1);
+	sceneAM.add(light1);
+	scene.add(light1);
+    
+	createEnvMap();
+    createScenePima();
+    createSceneATR();
+    createSceneAM();
+    createPanels();
+}
+
+    function showPima(){
+        location.href = "models/pima/pima.html";
+    }
+
+    function showATR(){
+        location.href = "models/atr03/atr03.html";
+    }
+
+    function showAM(){
+        location.href = "models/arraymate/arraymate.html";
+    }
+
+    function createPlanes(myScene){
+        plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
+        plane.visible = false;
+        myScene.add( plane );
+
+        var plane2 = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0xeeeeee, opacity: 0.5, transparent: true, side: THREE.DoubleSide } ) );
+        plane2.position.set(0,0,0);
+        plane2.rotation.x = -90*deg;
+        plane2.rotation.z = -45*deg;
+        plane2.receiveShadow = true;
+        myScene.add(plane2);
+    }
+
+    function createPanels(){
+
+        var panelgeo = new THREE.PlaneGeometry(5,4,1,1);
+        var panelmat = new THREE.MeshBasicMaterial({ color: 0xEEEEEE, map: renderTargetATR , opacity: .850, transparent: true, side: THREE.DoubleSide})
+        var panel1Mesh = new THREE.Mesh(panelgeo, panelmat);
+        panel1Mesh.position.set(-4,0,-10);
+        panel1Mesh.rotation.set(0,45*deg,0);
+        panel1Mesh.name = "ATR03 Reader";
+        scene.add(panel1Mesh);
+        tobjects.push(panel1Mesh);
+
+        var panelgeo = new THREE.PlaneGeometry(5,4,1,1);
+        var panelmat = new THREE.MeshBasicMaterial({ color: 0xEEEEEE, map: renderTargetPima, opacity: .940, transparent: true,})
+        var panel2Mesh = new THREE.Mesh(panelgeo, panelmat);
+        panel2Mesh.name = "Pima Device";
+        panel2Mesh.position.set(0,-.250,-14);
+        tobjects.push(panel2Mesh);
+
+        scene.add(panel2Mesh);
+
+        var panelgeo = new THREE.PlaneGeometry(5,4,1,1);
+        var panelmat = new THREE.MeshBasicMaterial({ color: 0xEEEEEE, map: renderTargetAM , opacity: .850, transparent: true, side: THREE.DoubleSide})
+        var panel3Mesh = new THREE.Mesh(panelgeo, panelmat);
+        panel3Mesh.name = "ArrayMate Reader";
+        panel3Mesh.position.set(4,0,-10);
+        panel3Mesh.rotation.set(0,-45*deg,0);
+        tobjects.push(panel3Mesh);
+
+        scene.add(panel3Mesh);
+
+        txt = new THREE.ImageUtils.loadTexture("images/Alere_Devices.png");
+        var panelgeo = new THREE.PlaneGeometry(10,5,1,1);
+        var panelmat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, map : txt, opacity: 1.00, transparent: true, side: THREE.DoubleSide });
+        var panel4Mesh = new THREE.Mesh(panelgeo, panelmat);
+        panel4Mesh.name = "ArrayMate Reader";
+        panel4Mesh.position.set(0,0,-15);
+        tobjects.push(panel4Mesh);
+
+        scene.add(panel4Mesh);
+    }
+
+    function createEnvMap(){
+        var path = "images/logo.png";
+        var urls = [];
+
+        var urls = [ path,path,path,path,path,path ];
+
+        reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+        reflectionCube.format = THREE.RGBFormat;
+
+        refractionCube = new THREE.Texture( reflectionCube.image, new THREE.CubeRefractionMapping() );
+        refractionCube.format = THREE.RGBFormat;
+    }
+
+    function createScenePima(){
+
+        var callbackFinished = function( result ) {
+			
+			for (var j in result.objects){
+                obj = result.objects[j];
+                if ( result.objects[j] instanceof THREE.Mesh ){
+                  var mat = result.objects[j].material;
+                    console.log(mat);
+                  mat.envMap = reflectionCube;
+                  mat.combine = THREE.MixOperation;
+                  mat.reflectivity = 0.15;
+                  mat.side = THREE.DoubleSide;
+                }
+                obj.position.set(obj.position.x,obj.position.y+1.2,obj.position.z);
+
+                mobj = obj.clone();
+                mobj.position.set(mobj.position.x,-mobj.position.y,mobj.position.z);
+                mobj.rotation.y = Math.PI;
+
+                scenePima.add(obj);
+                scenePima.add( mobj );
+			
+            }
+			
+				
+        }
+
+            var loader = new THREE.SceneLoader();
+            loader.load( "models/pima/pima2.js.model", callbackFinished );
+    }
+
+    function createSceneATR(){
+        createPlanes(sceneAtr);
+        var callbackFinished = function( result ) {
+
+            for (var i in result.objects){
+
+                obj = result.objects[i];
+                if ( result.objects[i] instanceof THREE.Mesh ){
+
+                    var mat = result.objects[i].material;
+                    mat.envMap = reflectionCube;
+                    mat.combine = THREE.MixOperation;
+                    mat.reflectivity = 0.15;
+                    mat.side = THREE.DoubleSide;
+                }
+
+                obj.position.set(obj.position.x,obj.position.y+.1,obj.position.z);
+                mobj = obj.clone();
+                mobj.position.set(mobj.position.x,-mobj.position.y,mobj.position.z);
+                mobj.rotation.z = -Math.PI;
+
+                //objects.push(obj);
+                //mobjects.push(mobj);
+                sceneAtr.add(obj);
+                sceneAtr.add( mobj );
+				
+            }
+        }
+        var loader = new THREE.SceneLoader();
+        loader.load( "models/ATR03/ATR03.js.model", callbackFinished );
+
+    }
+
+    function createSceneAM(){
+        createPlanes(sceneAM);
+        var callbackFinished = function( result ) {
+
+            for (var i in result.objects){
+
+                obj = result.objects[i];
+                if ( result.objects[i] instanceof THREE.Mesh ){
+
+                    var mat = result.objects[i].material;
+                    mat.envMap = reflectionCube;
+                    mat.combine = THREE.MixOperation;
+                    mat.reflectivity = 0.15;
+                    mat.side = THREE.DoubleSide;
+                }
+
+                obj.position.set(obj.position.x,obj.position.y +.7,obj.position.z);
+                mobj = obj.clone();
+                mobj.position.set(mobj.position.x,-mobj.position.y,mobj.position.z);
+                mobj.rotation.y = Math.PI;
+
+                //objects.push(obj);
+                //mobjects.push(mobj);
+                sceneAM.add(obj);
+                sceneAM.add( mobj );
+
+            }
+        }
+        var loader = new THREE.SceneLoader();
+        loader.load( "models/ArrayMate/ArrayMate.js.model", callbackFinished );
+    }
+
+function onDocumentMouseMove( event ) {
+    event.preventDefault();
+
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+    projector.unprojectVector( vector, camera );
+
+    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+
+    var intersects = raycaster.intersectObjects( tobjects );
+
+    if ( intersects.length > 0 ) {
+        if ( INTERSECTED != intersects[ 0 ].object ) {
+            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+            INTERSECTED = intersects[ 0 ].object;
+            INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+            plane.position.copy( INTERSECTED.position );
+            plane.lookAt( camera.position );
+        }
+        container.style.cursor = 'pointer';
+
+    } else {
+        if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+        INTERSECTED = null;
+        container.style.cursor = 'auto';
+
+    }
+}
+
+function onDocumentMouseDown( event ) {
+
+    event.preventDefault();
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+    projector.unprojectVector( vector, camera );
+    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+    var intersects = raycaster.intersectObjects( tobjects );
+
+    if ( intersects.length > 0 ) {
+
+        SELECTED = intersects[ 0 ].object;
+
+        console.log(SELECTED.name);
+
+        if (SELECTED.name == "Pima Device"){
+            showPima();
+        }
+        if (SELECTED.name == "ATR03 Reader"){
+            showATR();
+        }
+        if (SELECTED.name == "ArrayMate Reader"){
+            showAM();
+        }
+
+        var intersects = raycaster.intersectObject( plane );
+        offset.copy( intersects[ 0 ].point ).sub( plane.position );
+        container.style.cursor = 'move';
+    }
+}
+
+function displayrotup(){
+    var itemNr = 0;
+    for (i in tobjects){
+        if (tobjects[i].name == "Display")
+            itemNr = i;
+    }
+
+    var rot = tobjects[itemNr].rotation;
+    var endrot  = {x : deg , y : rot.y , z : rot.z};
+    var tweenRot  = new TWEEN.Tween(rot).to(endrot, 2000);
+
+    tweenRot.onUpdate(function(){
+        tobjects[itemNr].rotation.x = rot.x;
+        tobjects[itemNr].rotation.y = rot.y;
+        tobjects[itemNr].rotation.z = rot.z;
+    });
+
+    tweenRot.start();
+}
+
+function displayrotdown(){
+    var itemNr = 0;
+    for (i in tobjects){
+        if (tobjects[i].name == "Display")
+            itemNr = i;
+    }
+
+    var rot = tobjects[itemNr].rotation;
+    var endrot  = {x : -deg*120 , y : rot.y , z : rot.z};
+    var tweenRot  = new TWEEN.Tween(rot).to(endrot, 2000);
+
+    tweenRot.onUpdate(function(){
+        tobjects[itemNr].rotation.x = rot.x;
+        tobjects[itemNr].rotation.y = rot.y;
+        tobjects[itemNr].rotation.z = rot.z;
+    });
+
+    tweenRot.start();
+}
+
+function onDocumentMouseUp( event ) {
+    event.preventDefault();
+    //controls.enabled = true;
+
+    if ( INTERSECTED ) {
+        plane.position.copy( INTERSECTED.position );
+        SELECTED = null;
+    }
+    container.style.cursor = 'auto';
+}
+
+function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    render();
+}
+
+function animate() {
+
+    requestAnimationFrame( animate );
+    render();
+}
+
+function setCamera(cam, dist){
+    if (!stopRotation){
+        theta += 0.0051;
+        cam.position.x = target.x + dist * Math.cos( constant * theta );
+        cam.position.z = target.z + dist * Math.sin( constant * theta );
+        cam.lookAt( target );
+    }
+    cam.lookAt( target );
+
+}
+
+function render() {
+
+    /* for (var i in objects){
+     objects[i].rotation.z =  deg *theta;
+     }
+     for (var i in mobjects){
+     mobjects[i].rotation.z = -2*Math.PI -deg * theta;
+     } */
+
+   // setCamera(camera, controls1);
+    setCamera(cameraATR, 8);
+    setCamera(cameraPima,6);
+    setCamera(cameraAM, 6);
+	if (renderPima) {
+            renderer.render( scenePima, cameraPima, renderTargetPima, true );
+    }
+   
+    if (renderAM) {
+        renderer.render( sceneAM, cameraAM, renderTargetAM, true );
+    }
+    if (renderATR) {
+        renderer.render( sceneAtr, cameraATR, renderTargetATR, true );
+    }
+    renderer.render(scene, camera);
+
+    TWEEN.update();
+
+}
+
+</script>
+</body>
+</html>
+
+
+

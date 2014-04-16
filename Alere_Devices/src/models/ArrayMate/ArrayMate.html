@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Pima Analyser Showcase</title> 
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #333333;
+		
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+	    <script src="../../libs/three.min.js"></script>
+		<script src="../../libs/OrbitControls.js"></script>
+		<script src="../../libs/tween.min.js"></script>
+		<script src="../../libs/dat.gui.min.js"></script>
+	    <script src="../../libs/getNavigator.js"></script>
+        <script type="text/javascript">
+				
+		    var container;
+			var camera, camera2, scene, scene2, projector, renderer, controls, loader ;
+			var light0, light1;
+			var objects         = [];
+		    var MARGIN          = 100;
+            var WIDTH           = window.innerWidth || 2;
+            var HEIGHT          = window.innerHeight || ( 2 + 2 * MARGIN );
+            var SCREEN_WIDTH    = WIDTH;
+            var SCREEN_HEIGHT   = HEIGHT - 2 * MARGIN;
+            var start_time      = Date.now();
+            var obj, mobj;
+            var open = true;
+            var tooltipshown = false;
+            var stopRotation = false;
+            var objects = [];
+            var tobjects = [];
+            var mobjects = [];
+            var plane, tween, ctx;
+            var target = new THREE.Vector3(0,1.0,0);
+            var radius = 6;
+            var constant = 1;
+            var displayToolTip;
+            var mouse           = new THREE.Vector2(),
+            offset              = new THREE.Vector3(),
+            INTERSECTED, SELECTED;
+            var backbtn;
+
+            var parameters = 
+            {     
+                     Controls:  false, 
+                        Start : function(){
+                        insertCartridge();
+                        }
+            };
+            
+            
+            
+            var renderTargetParameters = { 
+            		
+            		minFilter:     THREE.LinearFilter, 
+            		magFilter:     THREE.LinearFilter, 
+            		format:        THREE.RGBFormat, 
+            		stencilBuffer: true 
+            };
+            
+            var renderTarget    = new THREE.WebGLRenderTarget( SCREEN_WIDTH, SCREEN_HEIGHT, renderTargetParameters );
+            
+            var deg =  Math.PI / 180;
+            var theta = 0;
+            var reflectionCube, refractionCube;
+          
+            menu();
+            init();
+            animate();
+                        
+			function init() {
+
+			 	container   = document.createElement( 'div' );
+			 	
+				projector   = new THREE.Projector();
+			    renderer    = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
+			    renderer.setClearColor(0xFFFFFF);
+
+			    camera      = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 1000 );
+                scene       = new THREE.Scene();
+
+                controls    = new THREE.OrbitControls(camera, renderer.domElement );
+                
+                renderer.setSize( window.innerWidth, window.innerHeight );
+                 
+                container.appendChild( renderer.domElement );
+               
+                document.body.appendChild( container );
+                window.addEventListener( 'resize', onWindowResize, false );
+                
+                renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+                renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+                renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+                camera.position.x = 0;
+                camera.position.y = 3;
+                camera.position.z = 8;
+
+                var path = "../../images/logo.png";
+                var urls = [];
+                                         
+                var urls = [ path,path,path,path,path,path ];
+                
+                reflectionCube = THREE.ImageUtils.loadTextureCube( urls );
+                reflectionCube.format = THREE.RGBFormat;
+
+                refractionCube = new THREE.Texture( reflectionCube.image, new THREE.CubeRefractionMapping() );
+                refractionCube.format = THREE.RGBFormat;
+                
+                scene.fog = new THREE.Fog(0xffffff, 1,20);
+			     
+			    light1= new THREE.AmbientLight();
+                light1.position.set(0,15,0);
+                scene.add(light1);
+            
+                plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
+                plane.visible = false;
+                scene.add( plane );
+
+                var plane2 = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0xeeeeee, opacity: 0.5, transparent: true, side: THREE.DoubleSide } ) );
+                plane2.position.set(0,0,0);
+                plane2.rotation.x = -90*deg;
+                plane2.rotation.z = -45*deg;
+                plane2.receiveShadow = true;
+
+                createScene();
+                scene.add(plane2);
+                createToolTip();
+      		}
+
+            function menu(){
+                gui = new dat.GUI();
+                dat.gui.autoPlace = true;
+                    
+                    var top = gui.addFolder('Settings');
+                    
+                cGUI = top.add(parameters, 'Controls' ).name("Enable Controls").listen();
+
+                cGUI.onChange( function(value) {
+                        Controls   = parameters.Controls;
+                        Start      = parameters.Start;
+                        
+                    });
+                top.open();
+                gui.close();
+            }
+			
+			function createScene(){
+
+				  var callbackFinished = function( result ) {
+					  
+					    for (var i in result.objects){
+					    	
+					    	obj = result.objects[i];
+					    	var mat = result.objects[i].material;
+					    	mat.envMap = reflectionCube;
+					    	mat.combine = THREE.MixOperation;
+					    	mat.reflectivity = 0.15;
+					    	mat.side = THREE.DoubleSide;
+					    	obj.position.set(obj.position.x,obj.position.y+.7,obj.position.z);
+					    	
+					    	if (obj.name == "Display") { obj.rotation.x = deg; }
+					    	
+					    	tobjects.push(obj); 
+					    	
+					    	mobj = obj.clone();
+					    	mobj.position.set(mobj.position.x,-mobj.position.y,mobj.position.z);
+					        mobj.rotation.y = Math.PI;
+		                    
+					    	//objects.push(obj);
+					    	//mobjects.push(mobj);
+					    	scene.add(obj);
+		                    scene.add( mobj );
+					    	
+					    }
+				  }
+
+                  var loader = new THREE.SceneLoader();
+	              loader.load( "arraymate.js.model", callbackFinished );
+			}
+
+			function createToolTip(){
+
+            	var canvas = document.createElement("canvas");
+            	
+            	ctx = canvas.getContext('2d');
+                ctx.font = '14pt Verdana';
+                
+				texture1 = new THREE.Texture(canvas) 
+            	texture1.needsUpdate = true;
+            	
+            	var spriteMaterial = new THREE.SpriteMaterial( { map: texture1, useScreenCoordinates: true, alignment: THREE.SpriteAlignment.topLeft } );
+            	
+            	displayToolTip = new THREE.Sprite( spriteMaterial );
+            	displayToolTip.scale.set(180,100,1.0);
+            	
+            	displayToolTip.visible = false; 
+            	scene.add( displayToolTip );
+			}
+			
+  		     function clearToolTip(){
+			 	ctx.clearRect(0,0,300, 300);
+			 	texture1.needsUpdate = true;
+			 }
+			
+			 function setToolTipText(mesh)
+			 {
+				ctx.clearRect(0,0,300, 300);
+   			    var message 		= mesh.name;
+				var width 			= 130;
+				var height 			= 20;
+			    
+				ctx.fillStyle 		= "rgba(80,80,80,0.15)"; // white filler
+				
+			    ctx.fillRect(0, 0, width*2 , height *4 );
+			    ctx.fillStyle 		= "rgba(0,0,0,0.9)"; // white filler
+				ctx.fillText( message, width /2 ,height );
+				ctx.fillStyle 		= "rgba(0,0,0,0.7)"; // white filler
+				
+				if (mesh.name == "Pima Analyser") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Click to stop rotation.", width/4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				if (mesh.name == "Power Button") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Switch Analyser on/off.", width/4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				if (mesh.name == "Cartridge Slot") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Insert cartridge here.", width/4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				if (mesh.name == "USB Connector") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Connect printer here.", width/4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				if (mesh.name == "Power Connector") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Connect charger here.", width/4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				if (mesh.name == "Display") {
+					ctx.fillText( "", width/16, height+20);
+					ctx.fillText( "Click to open display.", width / 4, height+40);
+					ctx.fillText( "", width/16, height+60);
+				} 
+				
+				texture1.needsUpdate = true;
+			 } 
+
+		    
+			 function onDocumentMouseMove( event ) {
+	                event.preventDefault();
+
+	                mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	                mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+	                var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+	                projector.unprojectVector( vector, camera );
+
+	                var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+	                
+	                var intersects = raycaster.intersectObjects( tobjects );
+	                
+	                if ( intersects.length > 0 ) {
+	                		clearToolTip();
+	                	    displayToolTip.visible = true;
+	                	    setToolTipText(intersects[0].object);
+	                	    displayToolTip.position.set( event.clientX, event.clientY - 20, 0 );
+	                	
+	                	if ( INTERSECTED != intersects[ 0 ].object ) {
+	                        if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+		                        INTERSECTED = intersects[ 0 ].object;
+		                        INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+		                        plane.position.copy( INTERSECTED.position );
+		                        plane.lookAt( camera.position );
+	                    }
+	                    container.style.cursor = 'pointer';
+
+	                } else {
+	                    if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+	                    INTERSECTED = null;
+	                    clearToolTip();
+	                	displayToolTip.visible = false;
+	                	container.style.cursor = 'auto';
+	                    
+	                }
+	         }
+			 
+			  
+	         function onDocumentMouseDown( event ) {
+
+                event.preventDefault();
+                var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+                projector.unprojectVector( vector, camera );
+                var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+                var intersects = raycaster.intersectObjects( tobjects );
+
+                if ( intersects.length > 0 ) {
+
+                    controls.enabled = false;
+                    SELECTED = intersects[ 0 ].object;
+                    
+                    if (SELECTED.name == "Display"){
+                    	if (open){
+                    		displayrotdown();
+                    		open = false;
+                    	}else{
+                    		displayrotup();
+                    		open = true;
+                    	}
+                    }
+                    
+                    if (SELECTED.name == "Pima Analyser" && stopRotation == false)
+                    {
+                    	console.log("open");
+	                    parameters.Controls = true;	
+                    	stopRotation = true;
+	                }
+	                else if(SELECTED.name == "Pima Analyser"){
+	                	console.log("close");
+	                	parameters.Controls = false;
+	                	stopRotation = false;
+	                }
+                   
+                    var intersects = raycaster.intersectObject( plane );
+                    offset.copy( intersects[ 0 ].point ).sub( plane.position );
+                    container.style.cursor = 'move';
+                }
+            }
+
+            function displayrotup(){
+            	var itemNr = 0;
+                for (i in tobjects){
+                    if (tobjects[i].name == "Display")
+                        itemNr = i;
+                }
+                
+            	var rot = tobjects[itemNr].rotation;
+            	 var endrot  = {x : deg , y : rot.y , z : rot.z};
+                 var tweenRot  = new TWEEN.Tween(rot).to(endrot, 2000);
+                 
+                 tweenRot.onUpdate(function(){
+                	 tobjects[itemNr].rotation.x = rot.x;
+                	 tobjects[itemNr].rotation.y = rot.y;
+                	 tobjects[itemNr].rotation.z = rot.z;
+                 });
+                 
+                 tweenRot.start();
+            }
+
+            function displayrotdown(){
+            	var itemNr = 0;
+            	for (i in tobjects){
+            	    if (tobjects[i].name == "Display")
+            	    	itemNr = i;
+            	}
+            	
+            	var rot = tobjects[itemNr].rotation;
+                var endrot  = {x : -deg*120 , y : rot.y , z : rot.z};
+                var tweenRot  = new TWEEN.Tween(rot).to(endrot, 2000);
+                
+                tweenRot.onUpdate(function(){
+                    tobjects[itemNr].rotation.x = rot.x;
+                    tobjects[itemNr].rotation.y = rot.y;
+                    tobjects[itemNr].rotation.z = rot.z;
+                });
+                
+                tweenRot.start();
+            }
+                     
+	            
+            function onDocumentMouseUp( event ) {
+                event.preventDefault();
+                //controls.enabled = true;
+                    
+                if ( INTERSECTED ) {
+                    plane.position.copy( INTERSECTED.position );
+                    SELECTED = null;
+                }
+                container.style.cursor = 'auto';
+            }
+
+            function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+		       
+				render();
+			}
+			
+	        function removeToolTips(){
+	        	for (var i in scene2.children ){
+	        		scene2.children.remove(scene2.children[i]);
+	        	}
+	        	
+	        }    
+	            
+			function animate() {
+				
+				requestAnimationFrame( animate );
+				render();
+			}
+			
+			
+			
+			
+			function render() {
+			 	
+				/* for (var i in objects){
+					 objects[i].rotation.z =  deg *theta;
+			    }
+                for (var i in mobjects){
+                	mobjects[i].rotation.z = -2*Math.PI -deg * theta;
+                } */
+                
+                if (!stopRotation){
+                	theta -= 0.0051;
+                    camera.position.x = target.x + radius * Math.cos( constant * theta );         
+                    camera.position.z = target.z + radius * Math.sin( constant * theta );
+                    camera.lookAt( target );
+                }
+                camera.lookAt( target );
+                
+                if (parameters.Controls == true){	
+                	controls.enabled = true;
+                	controls.update();
+                	camera.lookAt(new THREE.Vector3(0,1,0));
+                	stopRotation = true;
+                }else{ controls.enabled = false; }
+                
+                if (camera.position.y <=  .3){
+                	camera.position.y = 0.3;
+                	controls.enable= false;
+                }   
+                else {
+                	controls.enable = true;
+                }
+                
+                if (camera.position.y < 0.3){
+                	camera.position.y = 0.3;
+                }
+
+                renderer.render(scene, camera);
+
+                TWEEN.update();
+                
+			}
+
+	</script>
+	</body>
+</html>
+
+
+

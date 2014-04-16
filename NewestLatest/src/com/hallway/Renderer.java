@@ -88,7 +88,7 @@ public class Renderer extends RajawaliRenderer {
 	private boolean mBoxIntersect = false;
 	Object3D camerabox;
     Loader3DSMax treeParser[] = new Loader3DSMax[3];
-    
+        
 	ArrayList<String> models = new ArrayList<String>();
 	ArrayList<String> materials = new ArrayList<String>();
 	ArrayList<String> textures = new ArrayList<String>();
@@ -99,6 +99,7 @@ public class Renderer extends RajawaliRenderer {
 	float coordy = 0;
 	float half_width  = 0; 
 	float half_height = 0; 
+	
 	
 	public boolean touchenabled = true;
 	boolean scaling = false;
@@ -213,7 +214,7 @@ public class Renderer extends RajawaliRenderer {
 		} 
 		
 		Object3D obj = parser.getParsedObject();
-		obj.setScale(10);
+		obj.setScale(1);
 		obj.setDoubleSided(true);
 		obj.setMaterial(stdMat);
 		
@@ -223,7 +224,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private Object3D loadCubeAWD(int nr){
 		
-		LoaderAWD parser = new LoaderAWD(getContext().getResources(), getTextureManager() , getContext().getResources().getIdentifier("level_"+nr, "raw","com.hallway"));
+		LoaderAWD parser = new LoaderAWD(getContext().getResources(), getTextureManager() , getContext().getResources().getIdentifier("cube_"+nr, "raw","com.hallway"));
 		
 		try {
 			parser.parse();
@@ -238,7 +239,9 @@ public class Renderer extends RajawaliRenderer {
 	
 	private Object3D getColliders(int nr){
 		
-		LoaderAWD parser = new LoaderAWD(getContext().getResources(), getTextureManager() , getContext().getResources().getIdentifier("level_"+nr+"_colliders", "raw","com.hallway"));
+		String name = "cube_"+nr+"_colliders";
+		
+		LoaderAWD parser = new LoaderAWD(getContext().getResources(), getTextureManager() , getContext().getResources().getIdentifier(name, "raw","com.hallway"));
 		
 		try {
 			parser.parse();
@@ -251,7 +254,7 @@ public class Renderer extends RajawaliRenderer {
 		return obj;
 	}
 	
-	private void setColliders(Object3D level_object){
+	private void setColliders(Object3D level_object){ 
 		
 		for (int i=0; i<level_object.getNumChildren(); i++)
 		{
@@ -261,7 +264,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void loadLevel(int levelnr){
 		
-		level = loadCubeAWD(levelnr);
+		level = loadCubeAWD(levelnr); 
 		colliderObj = getColliders(levelnr);
 		setColliders(colliderObj);
 		level.setZ(100);
@@ -286,26 +289,6 @@ public class Renderer extends RajawaliRenderer {
 	    colliders = new ArrayList<Object3D>();
 	}
 	
-	private void load_plane_anim(){
-		LoaderMD2 parser = new LoaderMD2(mContext.getResources(),
-				mTextureManager, R.raw.melt);
-		try {
-			parser.parse();
-
-			levelPlane = (VertexAnimationObject3D) parser
-					.getParsedAnimationObject();
-			
-			levelPlane.setFps(2);
-			levelPlane.setScale(.007f);
-			levelPlane.setRotX(90);
-			levelPlane.setZ(-5);
-			levelPlane.setDoubleSided(true);
-		//	levelPlane.setDrawingMode(GLES20.GL_POINTS);
-		} catch (ParsingException e) {
-			e.printStackTrace();
-		}
-	}
-	
 	protected void initScene() {
 		//mP = MediaPlayer.create(getContext(), R.raw.loop2);
 		
@@ -321,18 +304,19 @@ public class Renderer extends RajawaliRenderer {
 		camerabox.setMaterial(stdMat);
 		addChild(camerabox);
 		camerabox.setVisible(false);
-		tunnelcube = loadCube(1);
+		tunnelcube = loadCubeAWD(1);
+		Log.d("size", Double.toString(tunnelcube.getScaleY()));
 		
 		//createSkyBox();
 		
 		getCurrentScene().addLight(mLight);
 		getCurrentScene().setBackgroundColor(0, 0, 0, 0);
-		getCurrentCamera().setPosition( 0,1,-10);
+		getCurrentCamera().setPosition( 0,1,-20);
 		getCurrentCamera().setRotation( 0,0,0);
 		getCurrentCamera().setLookAt(   0,1,0);	
 		getCurrentCamera().setFarPlane(1500);	
 		
-	//	create_level_Mat(1);
+		create_level_Mat(1);
 	//	load_plane_anim();
 	//	levelPlane.setMaterial(stdMat);
 	//	levelPlane.setVisible(true);
@@ -385,7 +369,7 @@ public class Renderer extends RajawaliRenderer {
 		
 			mLight.setPosition( getCurrentCamera().getPosition().x,
 					getCurrentCamera().getPosition().y-1,
-					getCurrentCamera().getPosition().z + 20);
+					getCurrentCamera().getPosition().z + 40);
 			
 			
 			if (score == 1000){ 
@@ -441,11 +425,11 @@ public class Renderer extends RajawaliRenderer {
 					bbox2.transform(camerabox.getModelMatrix());
 					
 					mBoxIntersect = bbox.intersectsWith(bbox2);
-						
-					if (mBoxIntersect){
-						Log.d("HIT!!!!!!!!", "HITTTTTT");
-						stop();
-					}
+//						
+//					if (mBoxIntersect){
+//						Log.d("HIT!!!!!!!!", "HITTTTTT");
+//						stop();
+//					}
 				
 					if (col.getZ()< -40) {
 						removeChild(col);
@@ -455,7 +439,7 @@ public class Renderer extends RajawaliRenderer {
 			}
 		}else{
 			double n = tunnelcube.getZ();
-			getCurrentCamera().setPosition(0,1,-10);
+			getCurrentCamera().setPosition(0,1,-20);
 			getCurrentCamera().setRotation(0,0,0);
 			level.setVisible(false);	
 			
