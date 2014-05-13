@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Main Menu</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #333333;
+
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<script src="libs/three.min.js"></script>
+<script src="libs/OrbitControls.js"></script>
+<script src="libs/tween.min.js"></script>
+<script src="libs/dat.gui.min.js"></script>
+<script src='libs/threex.keyboardstate.js'></script>
+<script type="text/javascript">
+
+var container;
+var camera, scene, projector, renderer, controls, loader ;
+var tween, tween2;
+var light0, light1;
+var objects         = [];
+var MARGIN          = 100;
+var WIDTH           = window.innerWidth || 2;
+var HEIGHT          = window.innerHeight || ( 2 + 2 * MARGIN );
+var SCREEN_WIDTH    = WIDTH;
+var SCREEN_HEIGHT   = HEIGHT - 2 * MARGIN;
+var start_time      = Date.now();
+var obj, mobj;
+var created  = false;
+var open = true;
+var tooltipshown = false;
+var stopRotation = false;
+var objects = [];
+var tobjects = [];
+var mobjects = [];
+var plane, tween, ctx;
+var target = new THREE.Vector3(0,-0.0,0);
+var radius = 6;
+var constant = 1;
+var displayToolTip;
+var theta2 = 0;
+var mouse           = new THREE.Vector2(),
+offset              = new THREE.Vector3(),
+INTERSECTED, SELECTED;
+var keyboard    = new THREEx.KeyboardState();
+var indicator, mindicator;
+
+var renderTargetParameters = {
+
+    minFilter:     THREE.LinearFilter,
+    magFilter:     THREE.LinearFilter,
+    format:        THREE.RGBFormat,
+    stencilBuffer: true
+};
+
+var renderTarget = new THREE.WebGLRenderTarget( SCREEN_WIDTH, SCREEN_HEIGHT, renderTargetParameters );
+
+var deg =  Math.PI / 180;
+var theta = 0;
+var reflectionCube, refractionCube;
+
+var parameters =
+{
+    Difficulty: 0.0,
+    CubeCount: 25.0,
+    Start : function(){
+    }
+};
+
+menu();
+init();
+animate();
+
+function init() {
+
+    container   = document.createElement( 'div' );
+
+    projector   = new THREE.Projector();
+    renderer    = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
+    renderer.setClearColor(0xFFFFFF);
+
+    camera      = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 2100 );
+    controls    = new THREE.OrbitControls(camera, renderer.domElement );
+
+    scene       = new THREE.Scene();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    container.appendChild( renderer.domElement );
+
+    document.body.appendChild( container );
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    renderer.domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    renderer.domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    renderer.domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
+
+    camera.position.x = 16;
+    camera.position.y = 36;
+    camera.position.z = 136;
+    
+    scene.fog = new THREE.Fog(0xffffff, 1,300);
+
+    light1= new THREE.AmbientLight();
+    light1.position.set(0,15,0);
+    scene.add(light1);
+
+    var SkyBox = skybox();
+    scene.add(SkyBox);
+
+	createEnvMap();
+    createPlanes();
+    createScene();
+
+   // setObjects();
+
+}
+
+function skybox(){
+
+    var path = "env/";
+    var urls = [];
+
+    var urls = [ path + "posx.jpg", path + "negx.jpg",
+                 path + "posy.jpg", path + "negy.jpg",
+                 path + "posz.jpg", path + "negz.jpg"];
+
+    var textureCube = THREE.ImageUtils.loadTextureCube( urls, new THREE.CubeRefractionMapping() );
+    var shader = THREE.ShaderLib[ "cube" ];
+
+    shader.uniforms[ "tCube" ].value = textureCube;
+
+    var material = new THREE.ShaderMaterial( {
+
+        fragmentShader: shader.fragmentShader,
+        vertexShader: shader.vertexShader,
+        uniforms: shader.uniforms,
+        side: THREE.BackSide
+
+    } );
+
+    sky = new THREE.Mesh( new THREE.CubeGeometry( 2000, 2000, 2000 ), material );
+
+    return sky;
+}
+
+
+function createPlanes(){
+    plane = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000, 8, 8 ), new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.25, transparent: true, wireframe: true } ) );
+    plane.visible = false;
+    scene.add( plane );
+
+    var texture = THREE.ImageUtils.loadTexture("gradient.png");
+
+    var plane2 = new THREE.Mesh( new THREE.PlaneGeometry( 120, 120, 1, 1 ), new THREE.MeshBasicMaterial( {map: texture , color: 0xffffff, opacity: 1.0, transparent: true, side: THREE.DoubleSide } ) );
+    plane2.position.set(0,0,0);
+    plane2.rotation.x = -90*deg;
+    plane2.rotation.z = -45*deg;
+    plane2.receiveShadow = true;
+    scene.add(plane2);
+}
+
+function createEnvMap(){
+    var path = "env/";
+    var urls = [];
+
+    var urls = [    path + "negx.jpg",
+                    path + "posx.jpg",
+                    path + "negy.jpg",
+                    path + "posy.jpg",
+                    path + "negz.jpg",
+                    path + "posz.jpg"
+                ];
+
+
+    reflectionCube = THREE.ImageUtils.loadTextureCube(urls);
+    reflectionCube.format = THREE.RGBFormat;
+
+    refractionCube = new THREE.Texture( reflectionCube.image, new THREE.CubeRefractionMapping() );
+    refractionCube.format = THREE.RGBFormat;
+}
+
+function createScene(){
+    var callbackFinished = function( result ) {
+
+        for (var i in result.objects){
+            obj = result.objects[i];
+            if ( result.objects[i] instanceof THREE.Mesh ){
+
+                var mat = result.objects[i].material;
+                mat.envMap = reflectionCube;
+                mat.combine = THREE.MixOperation;
+                mat.reflectivity = 0.15;
+                mat.side = THREE.DoubleSide;
+            }
+
+            obj.position.set(obj.position.x,obj.position.y+20,obj.position.z);
+            mobj = obj.clone();
+            mobj.position.set(mobj.position.x,-mobj.position.y,mobj.position.z);
+            mobj.rotation.y = Math.PI;
+
+            scene.add(obj);
+            scene.add( mobj );
+
+            if (obj.name.substr(0,4) == "Indi"){
+                indicator = obj;
+                mindicator = mobj;
+            }
+        }
+    }
+    var loader = new THREE.SceneLoader();
+    loader.load( "menu.js.model", callbackFinished );
+}
+
+function menu()
+{
+    gui = new dat.GUI();
+    dat.gui.autoPlace = true;
+}
+
+function onDocumentMouseMove( event ) {
+    event.preventDefault();
+
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+    projector.unprojectVector( vector, camera );
+
+    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+
+    var intersects = raycaster.intersectObjects( tobjects );
+
+    if ( intersects.length > 0 ) {
+        if ( INTERSECTED != intersects[ 0 ].object ) {
+            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+            INTERSECTED = intersects[ 0 ].object;
+            INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
+            plane.position.copy( INTERSECTED.position );
+            plane.lookAt( camera.position );
+        }
+        container.style.cursor = 'pointer';
+
+    } else {
+        if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+        INTERSECTED = null;
+        container.style.cursor = 'auto';
+    }
+}
+
+function onDocumentMouseDown( event ) {
+
+    event.preventDefault();
+    var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 );
+    projector.unprojectVector( vector, camera );
+    var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+    var intersects = raycaster.intersectObjects( tobjects );
+
+    if ( intersects.length > 0 ) {
+
+        SELECTED = intersects[ 0 ].object;
+
+        console.log(SELECTED.name);
+
+        var intersects = raycaster.intersectObject( plane );
+        offset.copy( intersects[ 0 ].point ).sub( plane.position );
+        container.style.cursor = 'move';
+    }
+}
+
+function onDocumentMouseUp( event ) {
+    event.preventDefault();
+    //controls.enabled = true;
+
+    if ( INTERSECTED ) {
+        plane.position.copy( INTERSECTED.position );
+        SELECTED = null;
+    }
+    container.style.cursor = 'auto';
+}
+
+function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    render();
+}
+
+function animate() {
+
+    requestAnimationFrame( animate );
+    render();
+}
+
+function setCamera(cam, dist){
+    if (!stopRotation){
+        theta += 0.0151;
+        cam.position.x = target.x + dist * Math.cos( constant * Math.sin(theta) / 16 );
+        cam.position.z = target.z + dist * Math.sin( constant * Math.sin(theta) / 16 );
+        cam.lookAt( target );
+    }
+    cam.lookAt( target );
+
+}
+
+function setObjects(){
+
+        theta2+=1;
+
+        if(objects.length > 0)
+        {
+            for (var obj in objects){
+                objects[obj].rotation.set(theta2 * deg,objects[obj].rotation.y,  objects[obj].rotation.z );
+            }
+        }
+
+        if(mobjects.length > 0)
+        {
+            for (var obj in mobjects){
+                mobjects[obj].rotation.set ( -theta2 * deg, mobjects[obj].rotation.y, mobjects[obj].rotation.z);
+            }
+        }
+}
+
+function getPageByValue(yValue){
+
+}
+
+function render() {
+
+    //setCamera(camera, 180);
+    controls.update();
+    if (keyboard.pressed("down")){
+        if (indicator.position.y > 10.12 ) indicator.position.y = indicator.position.y - 1;
+        if (mindicator.position.y < -10.2 ) mindicator.position.y = mindicator.position.y + 1;
+    }
+    if (keyboard.pressed("up")){
+        if (indicator.position.y < 30 ) indicator.position.y = indicator.position.y + 1;
+        if (mindicator.position.y > - 30 ) mindicator.position.y = mindicator.position.y - 1;
+    }
+
+    if (keyboard.pressed("enter")){
+        getPageByValue(indicator.position.y);
+    }
+
+    if ( camera.position.y < 30  ) camera.position.y = 30;
+    if ( camera.position.y > 140 ) camera.position.y = 140;
+    if ( camera.position.x < -16 ) camera.position.x = -16;
+    if ( camera.position.x > 16 ) camera.position.x = 16;
+    if ( camera.position.z < 120 ) camera.position.z = 120;
+    if ( camera.position.z > 130 ) camera.position.z = 130;
+
+    //setObjects();
+    renderer.render(scene, camera);
+}
+
+</script>
+</body>
+</html>
+
+
+

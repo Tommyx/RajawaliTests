@@ -1,0 +1,202 @@
+{
+
+"metadata" :
+{
+	"formatVersion" : 3.2,
+	"type"          : "scene",
+	"sourceFile"    : "panel.blend",
+	"generatedBy"   : "Blender 2.66 Exporter",
+	"objects"       : 2,
+	"geometries"    : 2,
+	"materials"     : 2,
+	"textures"      : 3
+},
+
+"urlBaseType" : "relativeToScene",
+
+
+"objects" :
+{
+	"Indicator" : {
+		"geometry"  : "geo_Plane.001",
+		"groups"    : [  ],
+		"material"  : "Material.005",
+		"position"  : [ 0, 10.15, 0.0100003 ],
+		"rotation"  : [ 6.73986e-07, 0, -0 ],
+		"quaternion": [ 3.36993e-07, 0, 0, 1 ],
+		"scale"     : [ 20, 1.125, 1 ],
+		"visible"       : true,
+		"castShadow"    : false,
+		"receiveShadow" : false,
+		"doubleSided"   : false
+	},
+
+	"Panel" : {
+		"geometry"  : "geo_Plane",
+		"groups"    : [  ],
+		"material"  : "Material",
+		"position"  : [ 0, 0, 0 ],
+		"rotation"  : [ 6.73986e-07, 0, -0 ],
+		"quaternion": [ 3.36993e-07, 0, 0, 1 ],
+		"scale"     : [ 20, 11.25, 10 ],
+		"visible"       : true,
+		"castShadow"    : false,
+		"receiveShadow" : false,
+		"doubleSided"   : false
+	}
+},
+
+
+"geometries" :
+{
+	"geo_Plane.001" : {
+		"type" : "embedded",
+		"id"  : "emb_Plane.001"
+	},
+
+	"geo_Plane" : {
+		"type" : "embedded",
+		"id"  : "emb_Plane"
+	}
+},
+
+
+"textures" :
+{
+	"glass.jpg" : {
+		"url": "glass.jpg",
+        "repeat": [10, 10],
+        "wrap": ["repeat", "repeat"]
+	},
+
+	"gradient.png" : {
+		"url": "gradient.png",
+        "wrap": ["repeat", "repeat"]
+	},
+
+	"glass.jpg" : {
+		"url": "glass.jpg",
+        "repeat": [10, 1],
+        "wrap": ["repeat", "repeat"]
+	}
+},
+
+
+"materials" :
+{
+	"Material" : {
+		"type": "MeshLambertMaterial",
+		"parameters": { "color": 10724259, "opacity": 0.51, "map": "glass.jpg", "transparent": true, "blending": "AdditiveAlphaBlending" }
+	},
+
+	"Material.005" : {
+		"type": "MeshLambertMaterial",
+		"parameters": { "color": 13421772, "opacity": 0.75, "map": "gradient.png", "transparent": true, "blending": "NormalBlending" }
+	}
+},
+
+
+"embeds" :
+{
+"emb_Plane": {	"scale" : 1.000000,
+
+	"materials" : [	{
+		"DbgColor" : 15658734,
+		"DbgIndex" : 0,
+		"DbgName" : "Material",
+		"blending" : "AdditiveAlphaBlending",
+		"colorAmbient" : [0.6400000190734865, 0.6400000190734865, 0.6400000190734865],
+		"colorDiffuse" : [0.6400000190734865, 0.6400000190734865, 0.6400000190734865],
+		"colorSpecular" : [0.5, 0.5, 0.5],
+		"depthTest" : true,
+		"depthWrite" : true,
+		"mapDiffuse" : "glass.jpg",
+		"mapDiffuseRepeat" : [10, 10],
+		"mapDiffuseWrap" : ["repeat", "repeat"],
+		"shading" : "Lambert",
+		"specularCoef" : 50,
+		"transparency" : 0.5056818127632141,
+		"transparent" : true,
+		"vertexColors" : false
+	}],
+
+	"vertices" : [1,-1,0,-1,-1,0,1,1,0,-1,1,0],
+
+	"morphTargets" : [],
+
+	"normals" : [0,0,1],
+
+	"colors" : [],
+
+	"uvs" : [[0,1,0,0,1,0,1,1]],
+
+	"faces" : [43,1,0,2,3,0,0,1,2,3,0,0,0,0],
+
+	"bones" : [],
+
+	"skinIndices" : [],
+
+	"skinWeights" : [],
+
+    "animations" : []
+},
+
+"emb_Plane.001": {	"scale" : 1.000000,
+
+	"materials" : [	{
+		"DbgColor" : 15658734,
+		"DbgIndex" : 0,
+		"DbgName" : "Material.005",
+		"blending" : "NormalBlending",
+		"colorAmbient" : [0.800000011920929, 0.800000011920929, 0.800000011920929],
+		"colorDiffuse" : [0.800000011920929, 0.800000011920929, 0.800000011920929],
+		"colorSpecular" : [0.5, 0.5, 0.5],
+		"depthTest" : true,
+		"depthWrite" : true,
+		"mapDiffuse" : "gradient.png",
+		"mapDiffuseWrap" : ["repeat", "repeat"],
+		"shading" : "Lambert",
+		"specularCoef" : 50,
+		"transparency" : 0.75,
+		"transparent" : true,
+		"vertexColors" : false
+	}],
+
+	"vertices" : [1,-1,0,-1,-1,0,1,1,0,-1,1,0],
+
+	"morphTargets" : [],
+
+	"normals" : [0,0,1],
+
+	"colors" : [],
+
+	"uvs" : [[0,1,0,0,1,0,1,1]],
+
+	"faces" : [43,1,0,2,3,0,0,1,2,3,0,0,0,0],
+
+	"bones" : [],
+
+	"skinIndices" : [],
+
+	"skinWeights" : [],
+
+    "animations" : []
+}
+},
+
+
+"transform" :
+{
+	"position"  : [ 0, 0, 0 ],
+	"rotation"  : [ -1.5708, 0, 0 ],
+	"scale"     : [ 1, 1, 1 ]
+},
+
+"defaults" :
+{
+	"bgcolor" : [ 0, 0, 0 ],
+	"bgalpha" : 1.000000,
+	"camera"  : ""
+}
+
+}
