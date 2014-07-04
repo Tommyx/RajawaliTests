@@ -58,7 +58,6 @@ import rajawali.animation.mesh.VertexAnimationObject3D;
 import rajawali.bounds.IBoundingVolume;
 import rajawali.lights.DirectionalLight;
 import rajawali.lights.PointLight;
-import rajawali.postprocessing.passes.FogPass;
 import rajawali.primitives.Cube;
 import rajawali.primitives.Plane;
 import rajawali.renderer.RajawaliRenderer;
@@ -218,7 +217,7 @@ public class Renderer extends RajawaliRenderer {
 		obj.setDoubleSided(true);
 		obj.setMaterial(stdMat);
 		
-		addChild(obj);
+		getCurrentScene().addChild(obj);
 		return obj;
 	}
 	
@@ -233,7 +232,7 @@ public class Renderer extends RajawaliRenderer {
 		}
 		
 		Object3D obj = parser.getParsedObject();
-		addChild(obj);
+		getCurrentScene().addChild(obj);
 		return obj;
 	}
 	
@@ -250,7 +249,7 @@ public class Renderer extends RajawaliRenderer {
 		}
 		
 		Object3D obj = parser.getParsedObject();
-		addChild(obj);
+		getCurrentScene().addChild(obj);
 		return obj;
 	}
 	
@@ -302,7 +301,7 @@ public class Renderer extends RajawaliRenderer {
 		
 		camerabox = new Cube(.1f);
 		camerabox.setMaterial(stdMat);
-		addChild(camerabox);
+		getCurrentScene().addChild(camerabox);
 		camerabox.setVisible(false);
 		tunnelcube = loadCubeAWD(1);
 		Log.d("size", Double.toString(tunnelcube.getScaleY()));
@@ -331,7 +330,7 @@ public class Renderer extends RajawaliRenderer {
 		try {
 			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
 					R.drawable.posy, R.drawable.negy, R.drawable.posz,
-					R.drawable.negz, 1000);
+					R.drawable.negz);
 		}
 		catch(TextureException t) {
 			t.printStackTrace();
@@ -432,7 +431,7 @@ public class Renderer extends RajawaliRenderer {
 //					}
 				
 					if (col.getZ()< -40) {
-						removeChild(col);
+						getCurrentScene().removeChild(col);
 						colliders.remove(col);
 					}
 				}	
@@ -459,7 +458,7 @@ public class Renderer extends RajawaliRenderer {
 	private void reset(){
 		
 		level.setVisible(false); 
-		removeChild(level);
+		getCurrentScene().removeChild(level);
 		tunnelcube.setZ(0);
 		stop_all = false;
 		score = -100;
@@ -495,7 +494,7 @@ public class Renderer extends RajawaliRenderer {
 	
 	private void hideLevelPlane(){
 		levelPlane.setVisible(false);
-		removeChild(levelPlane);
+		getCurrentScene().removeChild(levelPlane);
 	}
 	
 	public void onTouch(MotionEvent me){

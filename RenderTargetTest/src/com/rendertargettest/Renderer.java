@@ -123,7 +123,7 @@ public class Renderer extends RajawaliRenderer {
 		try {
 			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
 					R.drawable.posy, R.drawable.negy, R.drawable.posz,
-					R.drawable.negz);
+					R.drawable.negz, numClouds);
 		}
 		catch(TextureException t) {
 			t.printStackTrace();

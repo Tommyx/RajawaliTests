@@ -37,22 +37,25 @@ public final class R {
         public static final int aug_real_=0x7f080000;
     }
     public static final class raw {
-        public static final int blur_fragment_shader=0x7f040000;
-        public static final int copy_fragment_shader=0x7f040001;
-        public static final int custom_frag_shader=0x7f040002;
-        public static final int custom_vert_shader=0x7f040003;
-        public static final int fireshader_fragment=0x7f040004;
-        public static final int fireshader_vertex=0x7f040005;
-        public static final int fog_fragment_shader=0x7f040006;
-        public static final int fragmentshader_water=0x7f040007;
-        public static final int grey_scale_fragment_shader=0x7f040008;
-        public static final int minimal_vertex_shader=0x7f040009;
-        public static final int noise_fragment=0x7f04000a;
-        public static final int noise_vertex=0x7f04000b;
-        public static final int scattering_fragment_shader=0x7f04000c;
-        public static final int sepia_fragment_shader=0x7f04000d;
-        public static final int vertex_shader_water=0x7f04000e;
-        public static final int water_turbulence_fragment_shader=0x7f04000f;
+        public static final int blend_add_fragment_shader=0x7f040000;
+        public static final int blend_screen_fragment_shader=0x7f040001;
+        public static final int blur_fragment_shader=0x7f040002;
+        public static final int color_threshold_shader=0x7f040003;
+        public static final int copy_fragment_shader=0x7f040004;
+        public static final int custom_frag_shader=0x7f040005;
+        public static final int custom_vert_shader=0x7f040006;
+        public static final int fireshader_fragment=0x7f040007;
+        public static final int fireshader_vertex=0x7f040008;
+        public static final int fog_fragment_shader=0x7f040009;
+        public static final int fragmentshader_water=0x7f04000a;
+        public static final int grey_scale_fragment_shader=0x7f04000b;
+        public static final int minimal_vertex_shader=0x7f04000c;
+        public static final int noise_fragment=0x7f04000d;
+        public static final int noise_vertex=0x7f04000e;
+        public static final int scattering_fragment_shader=0x7f04000f;
+        public static final int sepia_fragment_shader=0x7f040010;
+        public static final int vertex_shader_water=0x7f040011;
+        public static final int water_turbulence_fragment_shader=0x7f040012;
     }
     public static final class string {
         public static final int action_settings=0x7f060001;
