@@ -13,8 +13,9 @@ int raw color_threshold_shader 0x7f040003
 int raw copy_fragment_shader 0x7f040004
 int raw fog_fragment_shader 0x7f040005
 int raw grey_scale_fragment_shader 0x7f040006
-int raw minimal_vertex_shader 0x7f040007
-int raw sepia_fragment_shader 0x7f040008
+int raw mat_frag 0x7f040007
+int raw minimal_vertex_shader 0x7f040008
+int raw sepia_fragment_shader 0x7f040009
 int string action_settings 0x7f060001
 int string app_name 0x7f060000
 int string hello_world 0x7f060002

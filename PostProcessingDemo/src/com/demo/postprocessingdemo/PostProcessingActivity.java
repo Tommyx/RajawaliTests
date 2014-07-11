@@ -2,6 +2,7 @@ package com.demo.postprocessingdemo;
 
 import android.os.Bundle;
 
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Window;
@@ -23,8 +24,8 @@ public class PostProcessingActivity extends Starter {
 	@Override
     public boolean onTouchEvent(MotionEvent event) 
     {
-	//	this.renderer.onTouch(event);
-     	return true;
+		this.renderer.onTouch(event);
+		return true;
     }
 	
 	@Override
