@@ -3,6 +3,7 @@
 	<name>PostProcessingDemo</name>
 	<comment></comment>
 	<projects>
+		<project>Rajawali</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
