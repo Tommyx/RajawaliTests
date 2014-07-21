@@ -1,17 +1,12 @@
 package com.demo.postprocessingdemo;
 
 import java.io.BufferedReader;
-import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
 import java.util.Random;
 
 import javax.microedition.khronos.opengles.GL10;
@@ -23,112 +18,108 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Bitmap.Config;
 import android.graphics.PorterDuff.Mode;
-import android.opengl.GLES20;
-import android.opengl.GLSurfaceView; 
+import android.media.MediaPlayer;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.MotionEvent;
-import android.view.View;
-import android.view.animation.TranslateAnimation;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import rajawali.Object3D;
-import rajawali.animation.Animation;
 import rajawali.animation.Animation3D;
-import rajawali.animation.ColorAnimation3D;
 import rajawali.animation.RotateOnAxisAnimation;
 import rajawali.animation.Animation.RepeatMode;
 import rajawali.animation.TranslateAnimation3D;
 import rajawali.bounds.IBoundingVolume;
 import rajawali.lights.DirectionalLight;
 import rajawali.materials.Material;
-import rajawali.materials.methods.DiffuseMethod;
-import rajawali.materials.textures.ATexture;
 import rajawali.materials.textures.AlphaMapTexture;
-import rajawali.materials.textures.NormalMapTexture;
 import rajawali.materials.textures.Texture;
 import rajawali.materials.textures.ATexture.TextureException;
 import rajawali.math.Matrix4;
 import rajawali.math.vector.Vector3;
+import rajawali.math.vector.Vector3.Axis;
+import rajawali.parser.LoaderAWD;
+import rajawali.parser.ParsingException;
 import rajawali.postprocessing.PostProcessingManager;
-import rajawali.postprocessing.effects.BloomEffect;
 import rajawali.postprocessing.passes.RenderPass;
 import rajawali.postprocessing.passes.BlendPass.BlendMode;
 import rajawali.primitives.Cube;
-import rajawali.primitives.Plane;
 import rajawali.renderer.RajawaliRenderer;
 import rajawali.util.GLU;
 import rajawali.util.ObjectColorPicker;
 import rajawali.util.OnObjectPickedListener;
-import rajawali.util.RajLog;
 
 public class Renderer extends RajawaliRenderer implements OnObjectPickedListener{
-
-	private PostProcessingManager mEffects;
-	private float deg = (float) Math.PI / 180;
-	private Material stdMat;
-	float count, fcount =0;
-	int numMotionObj = 5;
-	private Object3D mObjects[] = new Object3D[numMotionObj];
-	private Material highscoreMat;
-	private ObjectColorPicker mPicker;
-	private Object3D mSelectedObject;
+		
+	private int hits = 0 ;
+	private int highscore = 0;
+	private int howoften = 29;
+	private int score = 0;
 	private int[] mViewport;
+	
+	public long  speed = 20000; 
+	
+	private float wall = 20;
+	//private float deg = (float) Math.PI / 180;
+	private float count, fcount =0;
+	
 	private double[] mNearPos4;
 	private double[] mFarPos4;
+	
+	private boolean notHit = false;
+	private boolean animrunning = false;
+	private boolean mBoxIntersect = false;
+	
 	private Vector3 mNearPos;
 	private Vector3 mFarPos;
 	private Vector3 mNewObjPos;
 	private Matrix4 mViewMatrix;
 	private Matrix4 mProjectionMatrix;
-	public Random random = new Random();
-	public long  speed = 20000; 
-	int howoften = 27;
-	int score = 0;
-	public Cube camerabox = new Cube(1000);
-	ArrayList<Object3D> colliders = new ArrayList<Object3D>();
-	private boolean mBoxIntersect = false;
-	private float wall = 20;
-	private boolean notHit = true;
-	private RotateOnAxisAnimation anim; 
-	private boolean animrunning = false;
-	private int hits = 0 ;
+	
+	private Object3D mSelectedObject;
+	
+	private PostProcessingManager mEffects;
+	private ObjectColorPicker mPicker;
+	private Random random = new Random();
+	
 	private Canvas mScoreCanvas;
 	private Paint mTextPaint;
-	private int highscore = 0;
 	private Bitmap mScoreBitmap;
-	private boolean mShouldUpdateTexture;
 	private AlphaMapTexture mScoreTexture;
-	private Cube highScorePanel,delPanel;
+	
+	private Material highscoreMat;
+	
+	private Cube button_hit, button_highScore, button_delete, button_start;
+	private boolean btn_hit_enabled, btn_delete_enabled, btn_start_enabled; 
+	
+	private Cube camerabox = new Cube(1000);
+	
 	private TranslateAnimation3D tanim;
 	private RotateOnAxisAnimation ranim;
+	private RotateOnAxisAnimation anim; 
+	
+	ArrayList<Object3D> colliders = new ArrayList<Object3D>();
+	public MediaPlayer mP;
 	
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
 	}
 
-
 	public void initScene() {
-		
+
 		initPicking();
 		
 		DirectionalLight light = new DirectionalLight();
+		
 		light.setPower(1f);
 		light.setPosition(0, 0, 15);
+		
 		getCurrentScene().addLight(light);
     	getCurrentCamera().setZ(wall-1);
 		getCurrentScene().setBackgroundColor(.0f,.0f,.0f,0);
 		
-		Material m = new Material();
-		//camerabox.setDrawingMode(GLES20.GL_LINES);
-		camerabox.setScale(10,10,0);
-		camerabox.setPosition(0,0,wall);
-		camerabox.setMaterial(m);
-		camerabox.setTransparent(true);
-		camerabox.setColor(0x00000000);
-		getCurrentScene().addChild(camerabox);
+		createCamBox();
+		createParticles();
+		createButtons();
+		setButtonsInvisible();
 		
 		mEffects = new PostProcessingManager(this);
 		RenderPass renderPass = new RenderPass(getCurrentScene(), getCurrentCamera(),0);
@@ -136,12 +127,23 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		
 		MyEffect bloomEffect = new MyEffect(getCurrentScene(), getCurrentCamera(), mViewportWidth, mViewportHeight,0x111111, 0xffffff, BlendMode.ADD, 0.1f);
 		mEffects.addEffect(bloomEffect);
-		bloomEffect.setRenderToScreen(true); 
+		bloomEffect.setRenderToScreen(true);
 		
+		button_start.setVisible(true);
+		btn_start_enabled = true;
+	}
+
+	public void setButtonsInvisible()
+	{
+		button_start.setVisible(false);
+		btn_start_enabled = false;
+		button_hit.setVisible(false);
+		btn_hit_enabled = false;
+		button_delete.setVisible(false);
+		btn_delete_enabled = false;
 	}
 	
-	public void initPicking()
-	{
+	public void initPicking(){
 		
 		mViewport = new int[] { 0, 0, mViewportWidth, mViewportHeight };
 		mNearPos4 = new double[4];
@@ -154,7 +156,42 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 
 		mPicker = new ObjectColorPicker(this);
 		mPicker.setOnObjectPickedListener(this);
+	}
+	
+	public void createCamBox(){
+		
+		Material m = new Material();
+		//camerabox.setDrawingMode(GLES20.GL_LINES);
+		camerabox.setScale(10,10,0);
+		camerabox.setPosition(0,0,wall);
+		camerabox.setMaterial(m);
+		camerabox.setTransparent(true);
+		camerabox.setColor(0x00000000);
+		getCurrentScene().addChild(camerabox);
+		
+	}
+	
+	public void createParticles(){
+		
+		final LoaderAWD parser = new LoaderAWD(mContext.getResources(), mTextureManager, R.raw.particles);
 
+		try {
+			parser.parse();
+		} catch (ParsingException e) {
+			e.printStackTrace();
+		}
+
+		final Object3D obj = parser.getParsedObject();
+		obj.setScale(0.25f);
+		getCurrentScene().addChild(obj);
+
+		final Animation3D anim = new RotateOnAxisAnimation(Axis.Y, -360);
+		anim.setDurationDelta(4d);
+		anim.setRepeatMode(RepeatMode.INFINITE);
+		anim.setTransformable3D(obj);
+		anim.play();
+		getCurrentScene().registerAnimation(anim);
+		
 	}
 	
 	public void createCube()
@@ -213,6 +250,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	}
 
 	public void deleteCube(Object3D cube){
+		
 		getCurrentScene().removeChild(cube);
 		colliders.remove(cube);  
 		mSelectedObject = null;
@@ -257,7 +295,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		mProjectionMatrix = getCurrentCamera().getProjectionMatrix();
 	}
 	
-	public void getObjectAt(float x, float y) {
+	private void getObjectAt(float x, float y) {
 		mPicker.getObjectAt(x, y);
 	}
 
@@ -265,30 +303,33 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	{
 		mSelectedObject = object;
 		
-		if (mSelectedObject.getName() == "Panel") 
+		if (mSelectedObject.getName() == "hitButton" && btn_hit_enabled) 
 		{
-			this.notHit = true;
-			getCurrentScene().removeChild(mSelectedObject);
-			getCurrentScene().removeChild(delPanel);
-			getCurrentScene().removeChild(highScorePanel);
+			button_highScore.setVisible(false);
+			setButtonsInvisible();
 			resetScore();
+			button_start.setVisible(true);
+			btn_start_enabled = true;
 		}
-		else if (mSelectedObject.getName() == "Panel3") 
+		else if (mSelectedObject.getName() == "deleteButton" && btn_delete_enabled) 
 		{
-			getCurrentScene().removeChild(delPanel);
 			deleteScore();
+			button_delete.setVisible(false);
+			
+		}
+		else if (mSelectedObject.getName() == "startButton" && btn_start_enabled) 
+		{
+			startGame();
 		}
 		
 		else if (mSelectedObject.getName() == "ACube") {
 			hits+=1;
-		}else
-		{
-			hits-=1;
+			deleteCube(mSelectedObject);
 		}
-		deleteCube(mSelectedObject);
+		
 	}
 	
-	public void moveSelectedObject(float x, float y) {
+	private void moveSelectedObject(float x, float y) {
 
 		if (mSelectedObject == null)
 			return;
@@ -330,15 +371,15 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		mNewObjPos.multiply(factor);
 		mNewObjPos.add(mNearPos);
 
-		double ox = mSelectedObject.getX();
-		double oy = mSelectedObject.getY();
-		
+//		double ox = mSelectedObject.getX();
+//		double oy = mSelectedObject.getY();
+//		
 		mSelectedObject.setX(mNewObjPos.x);
 		mSelectedObject.setY(mNewObjPos.y);
 		
-		double nx = mSelectedObject.getX();
-		double ny = mSelectedObject.getY();
-		
+//		double nx = mSelectedObject.getX();
+//		double ny = mSelectedObject.getY();
+//		
 //		if (nx > 0){
 //			for (int i=0;i<numMotionObj; i++){
 //			    mObjects[i].setX(nx-i*.1f);
@@ -359,7 +400,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 //		}
 	}
 	
-	public void stopMovingSelectedObject() {
+	private void stopMovingSelectedObject() {
 //		for (int i=0;i<numMotionObj; i++){
 //			mObjects[i].setPosition(mSelectedObject.getPosition());
 //		}
@@ -367,50 +408,99 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	}
 
 	private void resetColliders(){
-	
 		for (Object3D col : colliders){
 			col.setVisible(false);
 		}
 	    colliders = new ArrayList<Object3D>();
 	}
 	
-	public void showHitPanel(){
-		
-		Material m = new Material();		
-		m.setColorInfluence(0);
-		Cube c = new Cube(4);
-		c.setName("Panel");
-		c.setRotZ(180);
-		c.setScale(1,1,0.1f);
-		c.setPosition(0,0,0);
-		c.setMaterial(m);
-		try {m.addTexture(new Texture("test", R.drawable.panel));
-			}catch(TextureException e){}
-		c.setTransparent(true);
-		mPicker.registerObject(c);
-		getCurrentScene().addChild(c);
-		
+	private void startGame(){
+		mP = MediaPlayer.create(getContext(), R.raw.cpu);
+		mP.start();
+		notHit = true;
+		setButtonsInvisible();
 	}
 	
-	public void showDELPanel(){
-		
-		Material m = new Material();		
-		m.setColorInfluence(0);
-		delPanel = new Cube(4);
-		delPanel.setName("Panel3");
-		delPanel.setRotZ(180);
-		delPanel.setScale(1,.7,0.1f);
-		delPanel.setPosition(0,3,0);
-		delPanel.setMaterial(m);
-		try {m.addTexture(new Texture("test", R.drawable.panel2));
-			}catch(TextureException e){}
-		delPanel.setTransparent(true);
-		mPicker.registerObject(delPanel);
-		getCurrentScene().addChild(delPanel);
-		
+	private void stopGame(){
+		saveScore();
+		resetCamera();
+		button_hit.setVisible(true);
+		btn_hit_enabled = true;
+		button_delete.setVisible(true);
+		btn_delete_enabled = true;
+		showScoreBitmap();
+		resetColliders();
+		notHit = false;
+		mP.stop();
+		mP.reset();
 	}
 	
-	public void resetCamera(){
+	private void createStartButton(){
+
+		Material m = new Material();		
+		m.setColorInfluence(0);
+		button_start = new Cube(4);
+		button_start.setName("startButton");
+		button_start.setRotZ(180);
+		button_start.setScale(1,.6,0.1f);
+		button_start.setPosition(0,0,0);
+		button_start.setMaterial(m);
+		try {m.addTexture(new Texture("test", R.drawable.button_start));
+			}catch(TextureException e){}
+		button_start.setTransparent(true);
+		mPicker.registerObject(button_start);
+		btn_start_enabled = true;
+		getCurrentScene().addChild(button_start);
+
+	}
+	
+	private void createHitButton(){
+
+		Material m = new Material();		
+		m.setColorInfluence(0);
+		button_hit = new Cube(4);
+		button_hit.setName("hitButton");
+		button_hit.setRotZ(180);
+		button_hit.setScale(1,.6,0.1f);
+		button_hit.setPosition(0,0,0);
+		button_hit.setMaterial(m);
+		try {m.addTexture(new Texture("test", R.drawable.button_gothit));
+			}catch(TextureException e){}
+		button_hit.setTransparent(true);
+		btn_hit_enabled = false;
+		mPicker.registerObject(button_hit);
+		getCurrentScene().addChild(button_hit);
+
+	}
+	
+	private void createDeleteButton(){
+
+		Material m = new Material();		
+		m.setColorInfluence(0);
+		button_delete = new Cube(4);
+		button_delete.setName("deleteButton");
+		button_delete.setRotZ(180);
+		button_delete.setScale(1,.6,0.1f);
+		button_delete.setPosition(0,2,0);
+		button_delete.setMaterial(m);
+		try {m.addTexture(new Texture("test", R.drawable.button_delete));
+			}catch(TextureException e){}
+		button_delete.setTransparent(true);
+		btn_delete_enabled = false;
+		mPicker.registerObject(button_delete);
+		getCurrentScene().addChild(button_delete);
+
+	}
+	
+	private void createButtons(){
+		
+		createStartButton();
+		createHitButton();
+		createDeleteButton();
+				
+	}
+	
+	private void resetCamera(){
 		if (animrunning) anim.reset();
 		getCurrentCamera().setRotation(0,0,0);
 		
@@ -455,8 +545,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	
 	public void deleteScore(){
 			String filename = "score.txt";
-			String Hits  = Integer.toString(hits);
-		
+			
 			File file = new File(getContext().getFilesDir(), filename);
 			file.delete();
 	}
@@ -472,20 +561,20 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
             in = new BufferedReader(new FileReader(file));
             line = in.readLine();
             stringBuilder.append(line);
-
+            in.close();
         } catch (FileNotFoundException e) {
+        	
             Log.d("FileError", filename + " not found");
         } catch (IOException e) {
         	Log.d("FileError", filename + " I/O Error");
         } 
-
         return stringBuilder.toString();
     }
 	
 	public void showScoreBitmap()
 	{
-		if ( highScorePanel != null ){
-			getCurrentScene().removeChild(highScorePanel);
+		if ( button_highScore != null ){
+			getCurrentScene().removeChild(button_highScore);
 		}
 		
 		highscoreMat = new Material();
@@ -501,8 +590,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		
 		mScoreCanvas.drawText("Highest Score: " + Integer.toString(highscore), 30,
 				100, mTextPaint);
-		mShouldUpdateTexture = true;
-
+		
 		mScoreTexture = new AlphaMapTexture("ScoreTexture", mScoreBitmap);
 		
 		try {
@@ -512,24 +600,22 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		}
 		highscoreMat.setColorInfluence(1);
 		
-		highScorePanel = new Cube(6);
-		highScorePanel.setName("Panel2");
-		highScorePanel.setRotZ(180);
-		highScorePanel.setScale(1,1,0.1f);
-		highScorePanel.setPosition(0,-2,0);
-		highScorePanel.setMaterial(highscoreMat);
+		button_highScore = new Cube(6);
+		button_highScore.setName("Panel2");
+		button_highScore.setRotZ(180);
+		button_highScore.setScale(1,1,0.1f);
+		button_highScore.setPosition(0,-2,0);
+		button_highScore.setMaterial(highscoreMat);
 
-		highScorePanel.setTransparent(true);
-		highScorePanel.setVisible(true);
-		getCurrentScene().addChild(highScorePanel);
+		button_highScore.setTransparent(true);
+		button_highScore.setVisible(true);
+		getCurrentScene().addChild(button_highScore);
 	}
 	
 	@Override
 	public void onDrawFrame(GL10 glUnused) {
-		// TODO Auto-generated method stub
 		super.onDrawFrame(glUnused);
 	
-		
 		count +=.01;
 		fcount+=1;
 		
@@ -540,7 +626,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 			
 			
 			if (fcount % howoften == 0) createCube();
-		    if (fcount % howoften /2  == 0) createCube2();
+		    if (fcount % howoften / 4  == 0) createCube2();
 		    
 		    score +=1;
 		    count = score / 10;
@@ -559,13 +645,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 				mBoxIntersect = bbox.intersectsWith(bbox2);
 				
 				if (mBoxIntersect){
-					saveScore();
-					showHitPanel();
-					showDELPanel();
-					resetCamera();
-					showScoreBitmap();
-					resetColliders();
-					notHit = false;
+					stopGame();
 				}
 		    }
 			}

@@ -3,19 +3,11 @@ package com.demo.postprocessingdemo;
 import android.graphics.Color;
 import android.os.Bundle;
 
-import android.util.Log;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TableLayout;
 import android.widget.TextView;
 
 public class PostProcessingActivity extends Starter {
@@ -117,17 +109,21 @@ public class PostProcessingActivity extends Starter {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 	    	switch (keyCode) {
 	    		case KeyEvent.KEYCODE_MENU:
+	    			renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_POWER:
+	    			renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_SEARCH:
 	    			return true;
 	    		case KeyEvent.KEYCODE_BACK:
+	    			renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_HOME:
+	    			renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		default:

@@ -13,9 +13,9 @@ public final class R {
 		public static final int blur_fragment_shader = 0x7f040002;
 		public static final int color_threshold_shader = 0x7f040003;
 		public static final int copy_fragment_shader = 0x7f040004;
-		public static final int fog_fragment_shader = 0x7f040005;
-		public static final int grey_scale_fragment_shader = 0x7f040006;
-		public static final int minimal_vertex_shader = 0x7f040008;
-		public static final int sepia_fragment_shader = 0x7f040009;
+		public static final int fog_fragment_shader = 0x7f040006;
+		public static final int grey_scale_fragment_shader = 0x7f040007;
+		public static final int minimal_vertex_shader = 0x7f040009;
+		public static final int sepia_fragment_shader = 0x7f04000b;
 	}
 }
