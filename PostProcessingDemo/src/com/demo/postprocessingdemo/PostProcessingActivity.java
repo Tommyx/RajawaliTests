@@ -109,21 +109,25 @@ public class PostProcessingActivity extends Starter {
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 	    	switch (keyCode) {
 	    		case KeyEvent.KEYCODE_MENU:
-	    			renderer.mP.stop();
+	    			if (renderer.mP != null)
+	    				renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_POWER:
-	    			renderer.mP.stop();
+	    			if (renderer.mP != null)
+	    				renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_SEARCH:
 	    			return true;
 	    		case KeyEvent.KEYCODE_BACK:
-	    			renderer.mP.stop();
+	    			if (renderer.mP != null)
+	    				renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		case KeyEvent.KEYCODE_HOME:
-	    			renderer.mP.stop();
+	    			if (renderer.mP != null)
+	    				renderer.mP.stop();
 	    			this.finish();
 	    			return true;
 	    		default:

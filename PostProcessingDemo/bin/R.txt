@@ -17,10 +17,11 @@ int raw copy_fragment_shader 0x7f040004
 int raw cpu 0x7f040005
 int raw fog_fragment_shader 0x7f040006
 int raw grey_scale_fragment_shader 0x7f040007
-int raw mat_frag 0x7f040008
-int raw minimal_vertex_shader 0x7f040009
-int raw particles 0x7f04000a
-int raw sepia_fragment_shader 0x7f04000b
+int raw kuchel 0x7f040008
+int raw mat_frag 0x7f040009
+int raw minimal_vertex_shader 0x7f04000a
+int raw ring 0x7f04000b
+int raw sepia_fragment_shader 0x7f04000c
 int string action_settings 0x7f060001
 int string app_name 0x7f060000
 int string hello_world 0x7f060002
