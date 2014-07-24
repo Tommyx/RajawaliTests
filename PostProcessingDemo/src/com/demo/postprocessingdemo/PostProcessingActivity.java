@@ -1,6 +1,8 @@
 package com.demo.postprocessingdemo;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.os.Bundle;
 
 import android.view.KeyEvent;
@@ -16,7 +18,7 @@ public class PostProcessingActivity extends Starter {
 	TextView score,sLabel;
 	TextView hits, hLabel;
 	TextView highscore;
-	
+		
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -82,6 +84,7 @@ public class PostProcessingActivity extends Starter {
 		e.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, ll.getId());
         		
 		mLayout.addView(ll);
+
 		
 
 	}
@@ -130,6 +133,15 @@ public class PostProcessingActivity extends Starter {
 	    				renderer.mP.stop();
 	    			this.finish();
 	    			return true;
+	    		case KeyEvent.KEYCODE_VOLUME_UP:
+	    			if (renderer.mP != null){
+	    				renderer.setVolumeUp();
+	    			}
+	    		case KeyEvent.KEYCODE_VOLUME_DOWN:
+	    			if (renderer.mP != null){
+	    					renderer.setVolumeDown();
+	    			}
+	    					    			
 	    		default:
 	    			return true;
 	    	  }

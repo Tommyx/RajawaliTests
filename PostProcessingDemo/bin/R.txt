@@ -6,6 +6,8 @@ int drawable button_start 0x7f020002
 int drawable crack 0x7f020003
 int drawable ic_launcher 0x7f020004
 int drawable light 0x7f020005
+int drawable music_off 0x7f020006
+int drawable music_on 0x7f020007
 int id action_settings 0x7f090000
 int layout activity_post_processing 0x7f030000
 int menu post_processing 0x7f080000

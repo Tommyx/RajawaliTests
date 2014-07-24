@@ -11,6 +11,7 @@ import java.util.Random;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import android.R.integer;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -18,6 +19,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Bitmap.Config;
 import android.graphics.PorterDuff.Mode;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -96,8 +98,8 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	
 	private Material highscoreMat;
 	
-	private Cube filter, button_hit, button_highScore, button_delete, button_start;
-	private boolean btn_hit_enabled, btn_delete_enabled, btn_start_enabled; 
+	private Cube button_music_off, filter, button_hit, button_highScore, button_delete, button_start, button_music_on;
+	private boolean btn_hit_enabled, btn_delete_enabled, btn_start_enabled, btn_music_on_enabled, btn_music_off_enabled; 
 	
 	private Cube camerabox = new Cube(1000);
 	
@@ -108,14 +110,32 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	ArrayList<Object3D> colliders = new ArrayList<Object3D>();
 	public MediaPlayer mP;
 	public Object3D circle, particles;
+	public float Max_VOLUME = 1.0f;
+	public float currentVolume = .5f;
+	boolean music_state = true;
+	
 	
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
 	}
-
+	
+	public void setVolumeUp(){
+		if (currentVolume < 1.0f){
+			currentVolume += .05f;
+			Log.d("currentVolume2", Float.toString(currentVolume));
+			mP.setVolume(currentVolume, currentVolume);
+		}
+	}
+	
+	public void setVolumeDown(){
+		if (currentVolume > 0.0f){
+			currentVolume-=.05f;
+			mP.setVolume(currentVolume, currentVolume);
+		}
+	}
+	
 	public void initScene() {
-
 		initPicking();
 		
 		DirectionalLight light = new DirectionalLight();
@@ -143,7 +163,10 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		bloomEffect.setRenderToScreen(true);
 		
 		button_start.setVisible(true);
+		btn_music_off_enabled = true;
+		button_music_off.setVisible(true);
 		btn_start_enabled = true;
+		
 		loadCircle();
 		createParticle();
 	}
@@ -156,6 +179,10 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		btn_hit_enabled = false;
 		button_delete.setVisible(false);
 		btn_delete_enabled = false;
+		button_music_on.setVisible(false);
+		btn_music_on_enabled = false;
+		button_music_off.setVisible(false);
+		btn_music_off_enabled = false;
 	}
 	
 	public void initPicking(){
@@ -203,8 +230,6 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	
 	public void resetState(){
 		stopGame();
-
-		
 		setButtonsInvisible();
 		button_start.setVisible(true);
 		btn_start_enabled = true;
@@ -364,7 +389,9 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	
 	public void rotateCam(long camspeed, int winkel)
 	{
-		anim = new RotateOnAxisAnimation(new Vector3(0,0,1),winkel);
+		int angle = (int) getCurrentCamera().getRotation().z;
+		
+		anim = new RotateOnAxisAnimation(new Vector3(0,0,1),angle + winkel);
 		anim.setTransformable3D(getCurrentCamera());
 	    anim.setDurationMilliseconds(camspeed);
 		anim.setRepeatMode(RepeatMode.NONE);
@@ -435,7 +462,33 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 			hits+=1;
 			deleteCube(mSelectedObject);
 		}
+		else if (mSelectedObject.getName() == "music_off" && btn_music_off_enabled) 
+		{
+			currentVolume = 0;
+			
+			if (mP != null) {
+				mP.setVolume(0,0);
+			}
+			
+			btn_music_off_enabled = false;
+			button_music_off.setVisible(false);
+			music_state = false;
+			button_music_on.setVisible(true);
+			btn_music_on_enabled = true;
+		}
 		
+		else if (mSelectedObject.getName() == "music_on" && btn_music_on_enabled) 
+		{
+			currentVolume = .5f;
+			if (mP != null) {
+				mP.setVolume(.5f,.5f);
+			}
+			btn_music_on_enabled = false;
+			button_music_on.setVisible(false);
+			music_state = true;
+			btn_music_off_enabled = true;
+			button_music_off.setVisible(true);
+		}
 	}
 	
 	private void moveSelectedObject(float x, float y) {
@@ -526,6 +579,8 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	private void startGame(){
 		circle.setVisible(false);
 		mP = MediaPlayer.create(getContext(), R.raw.cpu);
+		float volume = (float) (1 - (Math.log(Max_VOLUME - currentVolume) / Math.log(Max_VOLUME)));
+		mP.setVolume(volume, volume);
 		mP.start();
 		mP.setLooping(true);
 		notHit = true;
@@ -537,6 +592,13 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		saveScore();
 		resetCamera();
 		button_hit.setVisible(true);
+		if (music_state){
+			button_music_off.setVisible(true);
+			btn_music_off_enabled = true;
+		}else{
+			button_music_on.setVisible(true);
+			btn_music_on_enabled = true;
+		}
 		btn_hit_enabled = true;
 		button_delete.setVisible(true);
 		btn_delete_enabled = true;
@@ -604,11 +666,47 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 
 	}
 	
+	private void createMusicButtons(){
+
+		Material m = new Material();		
+		m.setColorInfluence(0);
+		button_music_on = new Cube(4);
+		button_music_on.setName("music_on");
+		button_music_on.setRotZ(180);
+		button_music_on.setScale(1,.6,0.1f);
+		button_music_on.setPosition(0,-6,0);
+		try {m.addTexture(new Texture("test", R.drawable.music_on));
+			}catch(TextureException e){}
+		button_music_on.setMaterial(m);
+		button_music_on.setTransparent(true);
+		btn_music_on_enabled = false;
+		mPicker.registerObject(button_music_on);
+		getCurrentScene().addChild(button_music_on);
+		
+		Material n = new Material();
+		
+		n.setColorInfluence(0);
+		button_music_off = new Cube(4);
+		button_music_off.setName("music_off");
+		button_music_off.setRotZ(180);
+		button_music_off.setScale(1,.6,0.1f);
+		button_music_off.setPosition(0,-6,0);
+		try {n.addTexture(new Texture("test", R.drawable.music_off));
+			}catch(TextureException e){}
+		button_music_off.setMaterial(n);
+		button_music_off.setTransparent(true);
+		btn_music_off_enabled = true;
+		mPicker.registerObject(button_music_off);
+		getCurrentScene().addChild(button_music_off);
+		
+	}
+	
 	private void createButtons(){
 		
 		createStartButton();
 		createHitButton();
 		createDeleteButton();
+		createMusicButtons();
 				
 	}
 	
