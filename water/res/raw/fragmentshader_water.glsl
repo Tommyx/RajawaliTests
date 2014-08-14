@@ -1,6 +1,3 @@
-#ifdef GL_ES
-	precision mediump float;
-#endif
 precision mediump float;
 
 uniform sampler2D uTexture;

@@ -6,15 +6,22 @@ import java.util.Random;
 
 import javax.microedition.khronos.opengles.GL10;
 
+import android.R.color;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.text.method.MovementMethod;
 import android.util.Log;
 import android.view.MotionEvent;
 
 import rajawali.Camera;
 import rajawali.Object3D;
+import rajawali.animation.Animation;
 import rajawali.animation.Animation3D;
 import rajawali.animation.EllipticalOrbitAnimation3D;
+import rajawali.animation.IAnimationListener;
 import rajawali.animation.RotateOnAxisAnimation;
 import rajawali.animation.Animation.RepeatMode;
 import rajawali.animation.TranslateAnimation3D;
@@ -22,10 +29,12 @@ import rajawali.lights.DirectionalLight;
 import rajawali.lights.PointLight;
 import rajawali.materials.Material;
 import rajawali.materials.methods.DiffuseMethod;
+import rajawali.materials.methods.SpecularMethod;
 import rajawali.materials.shaders.FragmentShader;
 import rajawali.materials.shaders.VertexShader;
 import rajawali.materials.shaders.fragments.texture.NormalMapFragmentShaderFragment;
 import rajawali.materials.textures.ATexture;
+import rajawali.materials.textures.CubeMapTexture;
 import rajawali.materials.textures.NormalMapTexture;
 import rajawali.materials.textures.Texture;
 import rajawali.materials.textures.ATexture.TextureException;
@@ -36,11 +45,16 @@ import rajawali.parser.Loader3DSMax;
 import rajawali.parser.ParsingException;
 import rajawali.postprocessing.PostProcessingManager;
 import rajawali.postprocessing.effects.BloomEffect;
+import rajawali.postprocessing.effects.ShadowEffect;
 import rajawali.postprocessing.passes.RenderPass;
 import rajawali.postprocessing.passes.BlendPass.BlendMode;
+import rajawali.postprocessing.passes.ShadowPass;
 import rajawali.primitives.Cube;
 import rajawali.primitives.Plane;
 import rajawali.renderer.RajawaliRenderer;
+import rajawali.terrain.SquareTerrain;
+import rajawali.terrain.Terrain;
+import rajawali.terrain.TerrainGenerator;
 import rajawali.util.GLU;
 import rajawali.util.ObjectColorPicker;
 import rajawali.util.OnObjectPickedListener;
@@ -54,23 +68,26 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	private double[] mFarPos4;
 	
 	private float yrot = 45;
-	private float time = 0;
+	private float time, uTime = 0;
 	private float[] touch = new float[2];
 	
 	private float deg = (float) (Math.PI / 180);
 	
 	private boolean animrunning = false;
 	private boolean loaded = false;
+	private boolean enableclouds = true;
 
 	private Vector3 mNearPos;
 	private Vector3 mFarPos;
 	private Vector3 mNewObjPos;
 	private Matrix4 mViewMatrix;
 	private Matrix4 mProjectionMatrix;
+
+	private SquareTerrain mTerrain;
 	
 	private Object3D mSelectedObject;
 	
-	private PostProcessingManager mEffects;
+	private PostProcessingManager mPostProcessingManager;
 	private ObjectColorPicker mPicker;
 	private Random random = new Random();
 	
@@ -78,66 +95,193 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	private RotateOnAxisAnimation ranim;
 	
 	public MediaPlayer mP;
-	public Object3D wuerfel, particle;
-	public Object3D[] waende = new Object3D[3];
+	public Object3D wuerfel, particle ,mEmpty;
+	Object3D[] clouds;
 	public Camera c, temp;
+	int numClouds = 10;
+	
 	Material mCube;		
 	VertexShader v = new VertexShader(R.raw.vertex_shader_water);
-	FragmentShader f = new FragmentShader(R.raw.fragmentshader_water);
-	
+	FragmentShader f = new FragmentShader(R.raw.fragmentshader_water2);
+	DirectionalLight mLight = new DirectionalLight();
 	
 	public Renderer(Context context) {
 		super(context);
 		setFrameRate(60);
 	}
 
+
 	public void initScene() {
 
 		initPicking();
-		c  = new Camera();
-		temp = new Camera();
-		PointLight light = new PointLight();
 		
-		light.setPower(1f);
-		light.setPosition(0, 5, 0);
+		mLight = new DirectionalLight();
+		mLight.setDirection(0, 0, 0);
+		mLight.setPosition(0, 40, 20);
+		mLight.setPower(1.0f);
 		
-		EllipticalOrbitAnimation3D anim = new EllipticalOrbitAnimation3D(
-				new Vector3(0, 1, 0), new Vector3(1, 1, 1), 0, 359);
-		anim.setRepeatMode(RepeatMode.INFINITE);
-		anim.setDurationMilliseconds(60000);
-		anim.setTransformable3D(light);
-		getCurrentScene().registerAnimation(anim);
-		anim.play();
+		getCurrentScene().addLight(mLight);
 		
-		getCurrentScene().addLight(light);
-    	
-    	getCurrentCamera().setPosition(0,1,10);
-    	getCurrentCamera().setLookAt(new Vector3(0,0,0));
-    	getCurrentScene().setBackgroundColor(0);
-    	
-    	c.setPosition(0,1,10);
-    	c.setLookAt(new Vector3(0,0,0));
-    	temp.setPosition(0,1,5);
-    	temp.setLookAt(new Vector3(0,0,0));
-    	getCurrentScene().addCamera(c);
-    	getCurrentScene().addCamera(temp);
-    	getCurrentScene().switchCamera(c);
+		getCurrentCamera().setPosition(5,5,30);
+		getCurrentCamera().setLookAt(0, -1, 0);
+		getCurrentCamera().setFarPlane(150);
+	
+		createSkyBox();
+		water();
+		
+		mPostProcessingManager = new PostProcessingManager(this);
 
-    	mEffects = new PostProcessingManager(this);
-		RenderPass renderPass = new RenderPass(getCurrentScene(), getCurrentCamera(),0);
-		mEffects.addPass(renderPass);
+		ShadowEffect shadowEffect = new ShadowEffect(getCurrentScene(), getCurrentCamera(), mLight, 1024);
+		MyEffect bloomEffect = new MyEffect(getCurrentScene(), getCurrentCamera(), mViewportWidth, mViewportHeight,0x4444444, 0x999999, BlendMode.ADD);
+		shadowEffect.setShadowInfluence(.5f);
+		mPostProcessingManager.addEffect(shadowEffect);
+		mPostProcessingManager.addEffect(bloomEffect);
 		
-		BloomEffect bloomEffect = new BloomEffect(getCurrentScene(), getCurrentCamera(), mViewportWidth, mViewportHeight,0xeeeeee, 0xffffff, BlendMode.ADD);
-		
-		mEffects.addEffect(bloomEffect);
 		bloomEffect.setRenderToScreen(true);
-
-		loadCube();
-		createWalls();
+		shadowEffect.setRenderToScreen(true);
+		
 		loaded = true;
 		
-	}
+		createTerrain();
+		createClouds(4);
+		getCurrentScene().setBackgroundColor(0x557d9f);
+		
+		EllipticalOrbitAnimation3D anim = new EllipticalOrbitAnimation3D(
+				new Vector3(0, 30, 0), new Vector3(0, 30, 3), 0, 359);
+		anim.setRepeatMode(RepeatMode.INFINITE);
+		anim.setDurationMilliseconds(100000);
+		anim.setTransformable3D(mLight);
+		getCurrentScene().registerAnimation(anim);
+		anim.play();
 
+//		
+		
+	}
+	
+	public void createTerrain(){
+		
+		
+		
+		Bitmap bmp = BitmapFactory.decodeResource(mContext.getResources(),
+				R.drawable.map);
+
+		try {
+			
+			SquareTerrain.Parameters terrainParams = SquareTerrain.createParameters(bmp);
+		
+			terrainParams.setScale(1f, -10f, 1f);
+		
+			terrainParams.setDivisions(128);
+		
+			terrainParams.setTextureMult(4);
+		
+			terrainParams.setColorMapBitmap(bmp);
+		
+			mTerrain = TerrainGenerator.createSquareTerrainFromBitmap(terrainParams);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mTerrain.setPosition(0,-5,-10);
+		Material material = new Material(); 
+		material.enableLighting(true);
+		material.setDiffuseMethod(new DiffuseMethod.Lambert());
+		
+		try {
+			Texture groundTexture = new Texture("ground", R.drawable.terrain_texture);
+			material.addTexture(groundTexture);
+			material.addTexture(new NormalMapTexture("groundNormalMap", R.drawable.terrain_texture_nm));
+			material.setColorInfluence(0);
+		} catch (TextureException e) {
+			e.printStackTrace();
+		}
+		mTerrain.setMaterial(material);
+		getCurrentScene().addChild(mTerrain);
+		
+		
+	}
+	
+	
+	private void water(){
+		
+		mCube = new Material(v,f);
+		
+		try{
+			mCube.addTexture(new Texture("diffuse", R.drawable.water));
+		}catch(TextureException e){
+		}
+		
+		wuerfel = new Plane(100,100,1,1);
+		wuerfel.setDoubleSided(true);
+		wuerfel.setPosition(0,-10,0);
+		wuerfel.setRotation(90,0,0);
+		wuerfel.setMaterial(mCube);
+		getCurrentScene().addChild(wuerfel);
+		
+	}
+	
+	private void createSkyBox(){
+		
+		int [] resourceIds = { R.drawable.posx, 
+							   R.drawable.negx, 
+							   R.drawable.posy, 
+							   R.drawable.negy, 
+							   R.drawable.posz, 
+							   R.drawable.negz};
+		
+		CubeMapTexture m = new CubeMapTexture("sky", resourceIds);
+		
+		Material qm = new Material();
+		Cube c = new Cube(140); 
+		c.setDoubleSided(true);
+		m.isSkyTexture(true);
+		qm.setColorInfluence(0);
+		
+		try {
+			qm.addTexture(m);
+		}
+		catch(TextureException t) {
+			t.printStackTrace();
+		}
+		
+		c.setMaterial(qm);
+		getCurrentScene().addChild(c);
+	}
+	
+	private void createClouds(int num){
+
+	    Plane cloud = new Plane(1,1,1,1);
+        cloud.setDoubleSided(true);
+        cloud.setTransparent(true);
+        //cloud.setBlendFunc(GL10.GL_ONE, GL10.GL_ONE_MINUS_SRC_ALPHA);
+        cloud.setRotation(90,90,0);
+        Texture texture = new Texture("cloud", R.drawable.cloud);
+        Material cloudMat = new Material(); 
+        cloudMat.setColorInfluence(.0f);
+        
+        try{
+        	cloudMat.addTexture(texture);
+        }catch(TextureException t){
+        	t.printStackTrace();
+        }
+        
+        cloud.setMaterial(cloudMat);
+        clouds = new Object3D[num];
+        
+        for ( int i = 0; i < num; i++ ) {
+
+        	clouds[i] = cloud.clone();
+        	clouds[i].setDoubleSided(true);
+        	//clouds[i].setColor(0x000000 + random.nextInt(0xfffffff));
+        	float scale = 15 + (float) (Math.random() * 30.f);
+        	
+        	clouds[i].setPosition(-80 + Math.random()*160,-10+Math.random()*20,-40 + Math.random()*40);
+        	clouds[i].setRotation(30*deg, 30*deg, Math.random() * (float) Math.PI);
+        	clouds[i].setScale(scale*2,scale,0);
+
+        	getCurrentScene().addChild(clouds[i]);
+        }
+    }
+	
 	public void initPicking(){
 		
 		mViewport = new int[] { 0, 0, mViewportWidth, mViewportHeight };
@@ -152,49 +296,6 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		mPicker = new ObjectColorPicker(this);
 		mPicker.setOnObjectPickedListener(this);
 	}
-
-	private void roll(){
-		
-	}
-	
-	public void createWalls(){
-		
-		Material[] m = new Material[3];		
-		for(int i = 0; i<waende.length; i++){
-			m[i] = new Material();
-			m[i].setColorInfluence(0);
-			m[i].setDiffuseMethod(new DiffuseMethod.Lambert());
-			m[i].enableLighting(true);
-		}
-		try {
-			m[0].addTexture(new Texture("left2", R.drawable.left));
-			m[1].addTexture(new Texture("right2", R.drawable.right));
-			m[2].addTexture(new Texture("floor2", R.drawable.floor));
-		} catch (TextureException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		waende[0] = new Plane(1,1,1,1);
-		waende[1] = new Plane(1,1,1,1);
-		waende[2] = new Plane(1,1,1,1);
-		
-		waende[0].setPosition( -.25,0,0);
-		waende[1].setPosition( .25,0,0);
-		waende[2].setPosition( 0,-.5,0);
-		
-		waende[0].setRotation(0,45,0);
-		waende[1].setRotation(0,-45,0);
-		waende[2].setRotation(90, 0,45);
-		
-		for(int i = 0; i<waende.length; i++){
-			
-			waende[i].setMaterial(m[i]);
-			waende[i].setDoubleSided(true);
-			getCurrentScene().addChild(waende[i]);
-		
-		}
-	}
 	
 	public void loadCube()
 	{
@@ -205,7 +306,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		
 		try{
 			mCube.addTexture(new Texture("bla", R.drawable.water));
-			mCube.addTexture(new Texture("bl2", R.drawable.water_nm));
+		//	mCube.addTexture(new Texture("bl2", R.drawable.water_nm));
 		}catch(TextureException e){
 		}
 		
@@ -216,7 +317,7 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 		
 		try {
 			l.parse();
-			//wuerfel = l.getParsedObject();
+			wuerfel = l.getParsedObject();
 			wuerfel = new Plane(20,20,3,3);
 			wuerfel.setDoubleSided(true);
 			wuerfel.setPosition(0,-3,0);
@@ -227,46 +328,6 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-	}
-	
-	public void createParticle()
-	{
-		Material m = new Material();		
-		
-		try{
-			m.addTexture(new Texture("bla", R.drawable.light));
-		}catch(TextureException e){}
-		
-		m.setDiffuseMethod(new DiffuseMethod.Lambert());
-		m.enableLighting(true);
-		m.setColorInfluence(0);
-		
-		Plane particle = new Plane(1,1,1,1);
-		particle.setDoubleSided(true);
-		particle.setTransparent(true);
-		particle.setScale(.2,.2,.2);
-		particle.setMaterial(m);
-		
-		for (int i = 0; i< numParticles; i++ ){
-			
-			Object3D p = particle.clone();
-			p.setDoubleSided(true);
-			p.setPosition(new Vector3(-5+random.nextFloat()*10,-5+random.nextFloat()*10,-10+random.nextFloat()*20));
-			p.setTransparent(true);
-			p.setMaterial(m);
-			getCurrentScene().addChild(p);	
-		} 
-		
-		getCurrentScene().addChild(particle);
-		
-		ranim = new RotateOnAxisAnimation(new Vector3(0,0,1),-360);
-		ranim.setTransformable3D(particle);
-		ranim.setDurationMilliseconds(1000000);
-		ranim.setRepeatMode(RepeatMode.INFINITE);
-		getCurrentScene().registerAnimation(ranim);
-		ranim.play();	
-		
 	}
 	
 	public boolean onTouch(MotionEvent event) {
@@ -282,17 +343,83 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 			
 			break;
 		case MotionEvent.ACTION_MOVE:
+			moveSelectedObject(touch[0],touch[1]);
 			break;
 		case MotionEvent.ACTION_UP:
-			
-			if (getCurrentScene().getCamera() != temp ){
-				getCurrentScene().replaceAndSwitchCamera(temp,0);
-			}else{
-				getCurrentScene().replaceAndSwitchCamera(c,0);
-			}
 			break;
 		}
 		return true;
+	}
+
+	private void moveSelectedObject(float x, float y) {
+
+		if (mSelectedObject == null)
+			return;
+		
+		//
+		// -- unproject the screen coordinate (2D) to the camera's near plane
+		//
+
+		GLU.gluUnProject(x, mViewportHeight - y, 0, mViewMatrix.getDoubleValues(), 0,
+				mProjectionMatrix.getDoubleValues(), 0, mViewport, 0, mNearPos4, 0);
+
+		//
+		// -- unproject the screen coordinate (2D) to the camera's far plane
+		//
+
+		GLU.gluUnProject(x, mViewportHeight - y, 1.f, mViewMatrix.getDoubleValues(), 0,
+				mProjectionMatrix.getDoubleValues(), 0, mViewport, 0, mFarPos4, 0);
+
+		//
+		// -- transform 4D coordinates (x, y, z, w) to 3D (x, y, z) by dividing
+		// each coordinate (x, y, z) by w.
+		//
+
+		mNearPos.setAll(mNearPos4[0] / mNearPos4[3], mNearPos4[1]
+				/ mNearPos4[3], mNearPos4[2] / mNearPos4[3]);
+		mFarPos.setAll(mFarPos4[0] / mFarPos4[3],
+				mFarPos4[1] / mFarPos4[3], mFarPos4[2] / mFarPos4[3]);
+
+		//
+		// -- now get the coordinates for the selected object
+		//
+
+		double factor = (Math.abs(mSelectedObject.getZ()) + mNearPos.z)
+				/ (getCurrentCamera().getFarPlane() - getCurrentCamera()
+						.getNearPlane());
+
+		mNewObjPos.setAll(mFarPos);
+		mNewObjPos.subtract(mNearPos);
+		mNewObjPos.multiply(factor);
+		mNewObjPos.add(mNearPos);
+
+//		double ox = mSelectedObject.getX();
+//		double oy = mSelectedObject.getY();
+//		
+		mSelectedObject.setX(mNewObjPos.x);
+		mSelectedObject.setY(mNewObjPos.y);
+		
+		double nx = mSelectedObject.getX();
+		double ny = mSelectedObject.getY();
+
+//		if (nx > 0){
+//			for (int i=0;i<numMotionObj; i++){
+//			    mObjects[i].setX(nx-i*.1f);
+//			}
+//		}else{
+//			for (int i=0;i<numMotionObj; i++){
+//				mObjects[i].setX(nx+i*.1f);
+//			}
+//		}
+//		if (ny > 0){
+//			for (int i=0;i<numMotionObj; i++){
+//				mObjects[i].setY(ny-i*.1f);
+//			}
+//		}else{
+//			for (int i=0;i<numMotionObj; i++){
+//				mObjects[i].setY(ny+i*.1f);
+//			}
+//		}
 	}
 	
 	public void onSurfaceChanged(GL10 gl, int width, int height) {
@@ -322,19 +449,27 @@ public class Renderer extends RajawaliRenderer implements OnObjectPickedListener
 	public void onDrawFrame(GL10 glUnused) {
 		super.onDrawFrame(glUnused);
 		
-		if (loaded) {
-			Log.d("yrot", Float.toString(yrot));
-			waende[0].setRotation(0,-yrot,0);
-			waende[1].setRotation(0,+yrot,0);
-		}
+//		if (loaded) {
+//			Log.d("yrot", Float.toString(yrot));
+//			waende[0].setRotation(0,-yrot,0);
+//			waende[1].setRotation(0,+yrot,0);
+//		}
 	}
 		
 	@Override
 	public void onRender(final double deltaTime) {
-		time+=.1;
-		mEffects.render(deltaTime);
-		mCube.setTime(time);
-		f.setUniform2fv("touch", touch);
+	//	mLight.setLookAt(mEmpty.getPosition());
+		mPostProcessingManager.render(deltaTime);
+		time=0.1f;
+		uTime++;
+		mCube.setTime(uTime);
+		if(enableclouds ){
+			for (Object3D i : clouds){
+				if (i.getX() > 40){ i.setX(i.getX() - 80);}
+				float position = (float) i.getX() + time;
+				i.setX(position);
+			}
+		}
 		
 	}
 }

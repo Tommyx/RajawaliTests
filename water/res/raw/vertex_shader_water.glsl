@@ -2,7 +2,6 @@ precision highp float;
 
 uniform float uTime;
 uniform mat4 uMVPMatrix;
-uniform sampler2D uTexture;
 
 attribute vec4 aPosition;
 attribute vec2 aTextureCoord;

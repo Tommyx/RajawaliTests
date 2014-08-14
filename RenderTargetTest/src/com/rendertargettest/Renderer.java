@@ -18,7 +18,7 @@ import rajawali.parser.fbx.LoaderFBX;
 
 import rajawali.animation.Animation3D;
 import rajawali.animation.RotateAnimation3D;
-import rajawali.animation.Animation3D.RepeatMode;
+
 import android.content.Context;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
@@ -115,7 +115,7 @@ public class Renderer extends RajawaliRenderer {
         	clouds[i].setRotation(30*deg,30*deg, Math.random() * (float) Math.PI);
         	clouds[i].setScale(scale,scale,0);
 
-        	addChild(clouds[i]);
+        	getCurrentScene().addChild(clouds[i]);
         }
     }
     
@@ -123,7 +123,7 @@ public class Renderer extends RajawaliRenderer {
 		try {
 			getCurrentScene().setSkybox(R.drawable.posx, R.drawable.negx,
 					R.drawable.posy, R.drawable.negy, R.drawable.posz,
-					R.drawable.negz, numClouds);
+					R.drawable.negz);
 		}
 		catch(TextureException t) {
 			t.printStackTrace();
@@ -164,7 +164,7 @@ public class Renderer extends RajawaliRenderer {
 				obj.setMaterial(mat);
 			    Serialize(obj, s+"serial");
 
-				addChild(obj);
+				getCurrentScene().addChild(obj);
 			}
 		}
 		
@@ -212,7 +212,7 @@ public class Renderer extends RajawaliRenderer {
 	private void drawObjects(int count){
 		
 		for (Object3D obj : objects){
-			addChild (obj);
+			getCurrentScene().addChild(obj);
 		}
 		
 		for (int i = 0; i<count;i++){
@@ -226,7 +226,7 @@ public class Renderer extends RajawaliRenderer {
 					mod.setPosition(mod.getX()-75,mod.getY()-50,mod.getZ()-50);
 					mod.setRotY(-25);
 				}
-				addChild(mod);
+				getCurrentScene().addChild(mod);
 			}
 		}	
 	}
@@ -296,7 +296,7 @@ public class Renderer extends RajawaliRenderer {
 		getCurrentCamera().setPosition( -30,60,260);
 		getCurrentCamera().setRotation( 0,175,0);
 		getCurrentCamera().setLookAt(   -30,55,0);
-		getCurrentCamera().setFogFar(1000);
+		//getCurrentCamera().setFogFar(1000);
 		getCurrentCamera().setFarPlane(5000);
 		
 		scene1();
