@@ -26,6 +26,9 @@ import org.rajawali3d.materials.textures.SpecularMapTexture;
 import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.Matrix4;
 import org.rajawali3d.math.vector.Vector3;
+import org.rajawali3d.postprocessing.PostProcessingManager;
+import org.rajawali3d.postprocessing.effects.ShadowEffect;
+import org.rajawali3d.postprocessing.passes.BlendPass;
 import org.rajawali3d.primitives.Cube;
 import org.rajawali3d.primitives.Plane;
 import org.rajawali3d.primitives.Sphere;
@@ -58,6 +61,8 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
     private Vector3 mNewObjPos;
     private Matrix4 mViewMatrix;
     private Matrix4 mProjectionMatrix;
+    private PostProcessingManager mPostProcessingManager;
+
     ScaleGestureDetector mScaleDetector =
             new ScaleGestureDetector(getContext(), this);
 
@@ -105,8 +110,6 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
         dl.setPower(2);
         getCurrentScene().addLight(dl);
 
-
-
         mViewport = new int[] { 0, 0, getViewportWidth(), getViewportHeight() };
         mNearPos4 = new double[4];
         mFarPos4 = new double[4];
@@ -133,7 +136,7 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
         Texture earthTexture = new Texture("Earth", R.drawable.earthtruecolor_nasa_big);
         Texture cloudTexture = new Texture("Cloud", R.drawable.earth_clouds);
         Texture starsTexture = new Texture("Stars", R.drawable.stars);
-        SpecularMapTexture specuTexture = new SpecularMapTexture("Specu", R.drawable.earth_clouds);
+        SpecularMapTexture specuTexture = new SpecularMapTexture("Specu", R.drawable.earth_specula);
         NormalMapTexture normalTexture = new NormalMapTexture("Specu", R.drawable.earth_bump);
 
         Material pm = new Material();
@@ -141,9 +144,10 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
         starsTexture.setRepeat(7,7);
 
         try{
-            material.addTexture(specuTexture);
             material.addTexture(earthTexture);
-            //material.addTexture(normalTexture);
+            material.addTexture(specuTexture);
+            material.addTexture(normalTexture);
+
 
             pm.addTexture(starsTexture);
             material2.addTexture(cloudTexture);
@@ -175,11 +179,18 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
         c = new Sphere(1.01f, 24, 24);
         c.setMaterial(material2);
         c.setTransparent(true);
-        getCurrentScene().addChild(c);
+      //  getCurrentScene().addChild(c);
 
         getCurrentCamera().setZ(3.2f);
 
-     }
+        mPostProcessingManager = new PostProcessingManager(this);
+
+        MyEffect bloomEffect = new MyEffect(getCurrentScene(), getCurrentCamera(), getViewportWidth(), getViewportHeight(),0x000000, 0xffffff, BlendPass.BlendMode.ADD);
+        mPostProcessingManager.addEffect(bloomEffect);
+
+        bloomEffect.setRenderToScreen(true);
+
+    }
 
     public void onRenderSurfaceSizeChanged(GL10 gl, int width, int height) {
         super.onRenderSurfaceSizeChanged(gl, width, height);
@@ -257,6 +268,7 @@ public class myRenderer extends Renderer implements View.OnTouchListener, OnObje
         super.onRender(elapsedTime, deltaTime);
         s.rotate(Vector3.Axis.Y, .040);
         c.rotate(Vector3.Axis.Y, .030);
+        mPostProcessingManager.render(elapsedTime,deltaTime);
         dl.setPosition(lightCube.getPosition().x, lightCube.getPosition().y, lightCube.getPosition().z+2);
 
     }
