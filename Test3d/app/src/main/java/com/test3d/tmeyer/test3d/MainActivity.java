@@ -4,6 +4,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import org.rajawali3d.view.ISurface;
 import org.rajawali3d.view.SurfaceView;
@@ -11,7 +12,7 @@ import org.rajawali3d.view.SurfaceView;
 
 public class MainActivity extends AppCompatActivity {
 
-    myRenderer renderer;
+    defaultRenderer renderer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,10 +24,11 @@ public class MainActivity extends AppCompatActivity {
         surface.setFrameRate(60.0);
         surface.setRenderMode(ISurface.RENDERMODE_WHEN_DIRTY);
 
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         // Add mSurface to your root view
         addContentView(surface, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT));
 
-        renderer = new myRenderer(this);
+        renderer = new defaultRenderer(this);
         surface.setOnTouchListener(renderer);
         surface.setSurfaceRenderer(renderer);
     }
