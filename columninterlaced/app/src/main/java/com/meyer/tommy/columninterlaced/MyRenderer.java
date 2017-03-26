@@ -50,6 +50,7 @@ public class MyRenderer extends RajawaliRenderer
             replaceAndSwitchScene(getCurrentScene(),sc1);
 
             mCamera1 = getCurrentCamera(); //We will utilize the initial camera
+
             mCamera1.setPosition(-10, 0, 20);
             mCamera1.setFieldOfView(60);
             mCamera1.setFarPlane(50);
@@ -77,8 +78,8 @@ public class MyRenderer extends RajawaliRenderer
 
         public void scene3(){
 
-            Plane planeLeft = new Plane(0,0,width, height);
-            Plane planeRight = new Plane(0,0,width, height);
+            Plane planeLeft = new Plane();
+            Plane planeRight = new Plane();
         }
 
         public void sceneContent(){
