@@ -1,12 +1,9 @@
 package com.meyer.tommy.columninterlaced;
 
+import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,9 +14,9 @@ import android.view.WindowManager;
 import org.rajawali3d.surface.IRajawaliSurface;
 import org.rajawali3d.surface.RajawaliSurfaceView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
-    MyRenderer renderer;
+    TheRenderer renderer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,14 +29,13 @@ public class MainActivity extends AppCompatActivity {
 
             final RajawaliSurfaceView surface = new RajawaliSurfaceView(this);
             surface.setFrameRate(60.0);
-            surface.setRenderMode(IRajawaliSurface.RENDERMODE_WHEN_DIRTY);
+            surface.setRenderMode(IRajawaliSurface.RENDERMODE_CONTINUOUSLY);
 
-            // Add mSurface to your root view
-            addContentView(surface, new ActionBar.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT));
-
-            renderer = new MyRenderer(this);
+            renderer = new TheRenderer(this);
             surface.setSurfaceRenderer(renderer);
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+            setContentView(surface);
     }
 
     @Override
