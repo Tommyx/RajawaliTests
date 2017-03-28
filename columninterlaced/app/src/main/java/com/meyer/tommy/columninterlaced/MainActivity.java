@@ -29,13 +29,14 @@ public class MainActivity extends Activity {
 
             final RajawaliSurfaceView surface = new RajawaliSurfaceView(this);
             surface.setFrameRate(60.0);
-            surface.setRenderMode(IRajawaliSurface.RENDERMODE_CONTINUOUSLY);
+            surface.setRenderMode(IRajawaliSurface.RENDERMODE_WHEN_DIRTY);
+
+            setContentView(surface);
 
             renderer = new TheRenderer(this);
             surface.setSurfaceRenderer(renderer);
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
-            setContentView(surface);
     }
 
     @Override

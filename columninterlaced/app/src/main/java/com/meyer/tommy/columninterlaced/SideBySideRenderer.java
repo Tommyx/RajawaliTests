@@ -14,6 +14,7 @@ package com.meyer.tommy.columninterlaced;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.opengl.GLES20;
@@ -22,13 +23,21 @@ import org.rajawali3d.Camera;
 import org.rajawali3d.materials.Material;
 import org.rajawali3d.materials.textures.ATexture;
 import org.rajawali3d.materials.textures.ATexture.TextureException;
+import org.rajawali3d.materials.textures.RenderTargetTexture;
+import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.math.vector.Vector3.Axis;
 import org.rajawali3d.primitives.ScreenQuad;
+import org.rajawali3d.renderer.RajawaliDebugRenderer;
 import org.rajawali3d.renderer.RajawaliRenderer;
 import org.rajawali3d.renderer.RenderTarget;
 import org.rajawali3d.scene.RajawaliScene;
+import org.rajawali3d.util.RajawaliGLDebugger;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.ShortBuffer;
 
 import javax.microedition.khronos.opengles.GL10;
 
@@ -116,10 +125,13 @@ public abstract class SideBySideRenderer extends RajawaliRenderer {
      * The distance between the pupils. This is used to offset the cameras.
      */
     private double mPupilDistance = .06;
+    RajawaliGLDebugger.Builder debugConfig = new RajawaliGLDebugger.Builder();
 
     public SideBySideRenderer(Context context)
     {
         super(context);
+
+        //super(context);
     }
 
     public SideBySideRenderer(Context context, double pupilDistance)
@@ -133,60 +145,68 @@ public abstract class SideBySideRenderer extends RajawaliRenderer {
     public void initScene() {
         try {
 
-        mCameraLeft = new Camera();
-        mCameraLeft.setNearPlane(.01f);
-        mCameraLeft.setFieldOfView(getCurrentCamera().getFieldOfView());
-        mCameraLeft.setNearPlane(getCurrentCamera().getNearPlane());
-        mCameraLeft.setFarPlane(getCurrentCamera().getFarPlane());
+            mCameraLeft = new Camera();
+            mCameraLeft.setNearPlane(.01f);
+            mCameraLeft.setFieldOfView(getCurrentCamera().getFieldOfView());
+            mCameraLeft.setNearPlane(getCurrentCamera().getNearPlane());
+            mCameraLeft.setFarPlane(getCurrentCamera().getFarPlane());
 
-        mCameraRight = new Camera();
-        mCameraRight.setNearPlane(.01f);
-        mCameraRight.setFieldOfView(getCurrentCamera().getFieldOfView());
-        mCameraRight.setNearPlane(getCurrentCamera().getNearPlane());
-        mCameraRight.setFarPlane(getCurrentCamera().getFarPlane());
+            mCameraRight = new Camera();
+            mCameraRight.setNearPlane(.01f);
+            mCameraRight.setFieldOfView(getCurrentCamera().getFieldOfView());
+            mCameraRight.setNearPlane(getCurrentCamera().getNearPlane());
+            mCameraRight.setFarPlane(getCurrentCamera().getFarPlane());
 
-        setPupilDistance(mPupilDistance);
+            setPupilDistance(mPupilDistance);
 
-        mLeftQuadMaterial = new Material();
-        mLeftQuadMaterial.setColorInfluence(0.0f);
-        mRightQuadMaterial = new Material();
-        mRightQuadMaterial.setColorInfluence(0.0f);
+            mLeftQuadMaterial = new Material();
+            mLeftQuadMaterial.setColorInfluence(0.50f);
+            mRightQuadMaterial = new Material();
+            mRightQuadMaterial.setColorInfluence(0.30f);
 
-        mSideBySideScene = new RajawaliScene(this);
+            mSideBySideScene = new RajawaliScene(this);
 
-        mLeftQuad = new ScreenQuad();
-        mLeftQuad.setScaleX(.5);
-        mLeftQuad.setX(-.25);
-        mLeftQuad.setMaterial(mLeftQuadMaterial);
-        mSideBySideScene.addChild(mLeftQuad);
+            mRightQuad = new ScreenQuad();
+            mRightQuad.setScaleX(1);
+            mRightQuad.setX(0);
+            mRightQuad.setMaterial(mRightQuadMaterial);
+            mSideBySideScene.addChild(mRightQuad);
 
-        mRightQuad = new ScreenQuad();
-        mRightQuad.setScaleX(.5);
-        mRightQuad.setX(.25);
-        mRightQuad.setMaterial(mRightQuadMaterial);
-        mSideBySideScene.addChild(mRightQuad);
+            addScene(mSideBySideScene);
 
-        addScene(mSideBySideScene);
+            mViewportWidthHalf = (int) (mDefaultViewportWidth * .5f);
 
-        mViewportWidthHalf = (int) (mDefaultViewportWidth * .5f);
+            mLeftRenderTarget = new RenderTarget("sbsLeftRT", mViewportWidthHalf, mDefaultViewportHeight, 0, 0,
+                    false, false, GLES20.GL_TEXTURE_2D, Bitmap.Config.ARGB_8888,
+                    ATexture.FilterType.LINEAR, ATexture.WrapType.CLAMP);
+            mLeftRenderTarget.setFullscreen(false);
+            mRightRenderTarget = new RenderTarget("sbsRightRT", mViewportWidthHalf, mDefaultViewportHeight);
+            mRightRenderTarget.setFullscreen(false);
 
-        mLeftRenderTarget = new RenderTarget("sbsLeftRT", mViewportWidthHalf, mDefaultViewportHeight, 0, 0,
-                false, false, GLES20.GL_TEXTURE_2D, Bitmap.Config.ARGB_8888,
-                ATexture.FilterType.LINEAR, ATexture.WrapType.CLAMP);
-        mLeftRenderTarget.setFullscreen(false);
-        mRightRenderTarget = new RenderTarget("sbsRightRT", mViewportWidthHalf, mDefaultViewportHeight);
-        mRightRenderTarget.setFullscreen(false);
+            mCameraLeft.setProjectionMatrix(mViewportWidthHalf, mDefaultViewportHeight);
+            mCameraRight.setProjectionMatrix(mViewportWidthHalf, mDefaultViewportHeight);
 
-        mCameraLeft.setProjectionMatrix(mViewportWidthHalf, mDefaultViewportHeight);
-        mCameraRight.setProjectionMatrix(mViewportWidthHalf, mDefaultViewportHeight);
+            addRenderTarget(mLeftRenderTarget);
+            addRenderTarget(mRightRenderTarget);
 
-        addRenderTarget(mLeftRenderTarget);
-        addRenderTarget(mRightRenderTarget);
+            RenderTargetTexture RT = mRightRenderTarget.getTexture();
+            RenderTargetTexture LT = mLeftRenderTarget.getTexture();
 
-        mLeftQuadMaterial.addTexture(mLeftRenderTarget.getTexture());
-        mRightQuadMaterial.addTexture(mRightRenderTarget.getTexture());
+            bitmap = RT.getCompressedTexture()
 
-        } catch (TextureException e) {
+            final Bitmap generatedBitmap = Bitmap.createBitmap(mDefaultViewportWidth, mDefaultViewportHeight, Bitmap.Config.RGB_565);
+
+            final Canvas canvas = new Canvas(generatedBitmap);
+            canvas.drawPoint();
+
+            final SimpleMaterial simpleMaterial = new SimpleMaterial();
+            simpleMaterial.addTexture(mTextureManager.addTexture(generatedBitmap));
+
+            final Plane largeCanvasPlane = new Plane(2, 2, 2, 2);
+            largeCanvasPlane.setZ(-0.75f);
+            largeCanvasPlane.setMaterial(simpleMaterial);
+            addChild(largeCanvasPlane);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -224,7 +244,6 @@ public abstract class SideBySideRenderer extends RajawaliRenderer {
         setRenderTarget(null);
 
         render(ellapsedTime, deltaTime);
-
 
         switchSceneDirect(mUserScene);
     }
